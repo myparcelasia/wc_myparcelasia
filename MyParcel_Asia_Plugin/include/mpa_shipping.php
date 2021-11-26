@@ -20,7 +20,6 @@ if ( ! defined( 'ABSPATH' ) ) {
           $this->method_description = __( 'Allows buyer to choose for their favourite shipping method.' ); // Description shown in admin
           $this->title              = "MyParcel Asia Shipping"; // This can be added as an setting but for this example its forced.
           $this->init();
-          $this->enabled = $this->settings['enabled'];
           
         }
 
@@ -59,12 +58,7 @@ if ( ! defined( 'ABSPATH' ) ) {
         //loading $this->init_form_fields();
             function init_form_fields() {
              $this->form_fields = array(
-                'enabled' => array(
-                          'title' => __( 'Enable', 'myparcelasia' ),
-                          'type' => 'checkbox',
-                          'description' => __( 'Enable MyParcel Asia Shipping', 'myparcelasia' ),
-                          'default' => 'yes'
-                ),'api_key' => array(
+                'api_key' => array(
                     'title'             => __( '<font color="red">*</font>API Key', 'myparcelasia' ),
                     'type'              => 'text',
                     'description'       => __( 'Here’s how to get api Key:<br/>
@@ -104,13 +98,18 @@ if ( ! defined( 'ABSPATH' ) ) {
                     'placeholder'       => 'RM 0.00'
                 ),'courier_option'  => array(
                     'title'             => __( 'Display Courier Option', 'myparcelasia' ),
-                    'type'              => 'select',
+                    'type'              => 'multiselect',
                     'default'           => 'cheaper',
                     'options'           => array(
                         'cheaper' => 'Cheapest Courier(s)',
-                        'all' => 'All Couriers',
+                        'all' => 'All Couriers',                        
+                        'poslaju' => 'Poslaju National Courier',
+                        'nationwide' => 'Nationwide Express Courier Service Berhad',
+                        'dhle' => 'DHL eCommerce',
+                        'jnt' => 'J&T Express',
+                        'ninjavan' => 'Ninja Van',
                       )
-                )
+                  ),
                 
               
              );
@@ -172,7 +171,6 @@ if ( ! defined( 'ABSPATH' ) ) {
             $rates = MPA_Shipping_API::getShippingRate($destination, $items,$weight);
               
             $weight=ceil($weight);
-            
             if($this->get_option( "courier_option" ) == 'cheaper') {
               $rates = $this->get_cheaper_rate($rates);
             }
@@ -191,7 +189,6 @@ if ( ! defined( 'ABSPATH' ) ) {
                   'label'   =>  $courier_service_label." (".$weight."kg)",
                   'cost'    =>  $rate->exclusive_price
                 );
-
                 if($this->get_option( "courier_option" ) == 'all') {
                   // dd($this->get_option("cust_rate"));
                   if($this->get_option("cust_rate") == 'fix_rate') {
@@ -213,25 +210,30 @@ if ( ! defined( 'ABSPATH' ) ) {
                 }
                 
                 if($this->get_option( "courier_option" ) != 'cheaper') {
-                    if($rate->Courier_ID == $this->get_option("courier_option")) {
-                      if($this->get_option( "cust_rate" ) == 'fix_rate') { 
-                        if($this->settings['fix_rate'] != '' || $this->settings['fix_rate_above_1kg'] != '') {
-                          if($weight <= 1 ) {
-                            $shipping_rate['cost'] = $this->settings['fix_rate'];
-                          } elseif($weight > 1 ) {
-                            $shipping_rate['cost'] = $this->settings['fix_rate_above_1kg'];
+                  $providers = json_encode($this->settings["courier_option"]);
+                  foreach($providers as $provider) {
+                    dd($provider);
+                  }
 
-                            $fkg = $this->settings['fix_rate'];
-                            $mkg = $this->settings['fix_rate_above_1kg'];
-                            $mweight = $weight - 1 ;
-                            $mPrice= $mkg * $mweight;
-                            $shipping_rate['cost'] = $fkg + $mPrice;
-                          }
+                  if($rate->provider_code == $this->get_option("courier_option")) {
+                    if($this->get_option( "cust_rate" ) == 'fix_rate') { 
+                      if($this->settings['fix_rate'] != '' || $this->settings['fix_rate_above_1kg'] != '') {
+                        if($weight <= 1 ) {
+                          $shipping_rate['cost'] = $this->settings['fix_rate'];
+                        } elseif($weight > 1 ) {
+                          $shipping_rate['cost'] = $this->settings['fix_rate_above_1kg'];
+
+                          $fkg = $this->settings['fix_rate'];
+                          $mkg = $this->settings['fix_rate_above_1kg'];
+                          $mweight = $weight - 1 ;
+                          $mPrice= $mkg * $mweight;
+                          $shipping_rate['cost'] = $fkg + $mPrice;
                         }
                       }
-                      // Register the rate
-                      $this->add_rate( $shipping_rate );
                     }
+                    // Register the rate
+                    $this->add_rate( $shipping_rate );
+                  }
                 }elseif($this->get_option( "courier_option" ) == 'cheaper') {
                   if($this->get_option( "cust_rate" ) == 'fix_rate') { 
                     if($this->settings['fix_rate'] != '' || $this->settings['fix_rate_above_1kg'] != '') {
