@@ -69,11 +69,13 @@ if ( ! defined( 'ABSPATH' ) ) {
                                               5. Copy the API Key and paste it here.', 'myparcelasia' ),
                     'desc_tip'          => true,
                     'required'          => true
-                ),'sender_postcode' => array(
+                ),
+                'sender_postcode' => array(
                     'title'             => __( '<font color="red">*</font>Sender Postcode', 'myparcelasia' ),
                     'type'              => 'text',
                     'required'          => true
-                ),'cust_rate'           => array(
+                ),
+                'cust_rate'           => array(
                     'title'             => __( 'Display Shipping Rate', 'myparcelasia' ),
                     'type'              => 'select',
                     'description'       => __( "You may display different types of shipping rates on your checkout page:<br/><br/>
@@ -83,39 +85,52 @@ if ( ! defined( 'ABSPATH' ) ) {
                     'desc_tip'          => true,
                     'default'           => 'normal', 
                     'options'           => array( 'fix_rate'=>'Fixed Rate','member_rate'=>'MyParcel Asia Member Rate','normal_rate'=>'MyParcel Asia Public Rate'),
-                ),'fix_rate'           => array(
+                ),
+                'fix_rate'           => array(
                     'title'             => __( 'Fixed Rate (RM)', 'myparcelasia' ),
                     'type'              => 'text',
                     'description'       => __( 'Shipping rate (RM) for first 1KG', 'myparcelasia' ),
                     'desc_tip'          => false,
                     'default'           => '', 
                     'placeholder'       => 'RM 0.00'
-                ),'fix_rate_above_1kg'  => array(
+                ),
+                'fix_rate_above_1kg'  => array(
                     'type'              => 'text',
                     'description'       => __( 'Shipping rate (RM) for every additional KG', 'myparcelasia' ),
                     'desc_tip'          => false,
                     'default'           => '', 
                     'placeholder'       => 'RM 0.00'
-                ),'courier_option'  => array(
-                    'title'             => __( 'Display Courier Option', 'myparcelasia' ),
-                    'type'              => 'multiselect',
-                    'default'           => 'cheaper',
-                    'options'           => array(
-                        'cheaper' => 'Cheapest Courier(s)',
-                        'all' => 'All Couriers',                        
-                        'poslaju' => 'Poslaju National Courier',
-                        'nationwide' => 'Nationwide Express Courier Service Berhad',
-                        'dhle' => 'DHL eCommerce',
-                        'jnt' => 'J&T Express',
-                        'ninjavan' => 'Ninja Van',
-                      )
-                  ),
-                
-              
+                ),
+                'poslaju' => array(
+                    'title' => __( 'Display Courier Option', 'myparcelasia' ),
+                    'label' => 'Poslaju',
+                    'checkboxgroup'   => 'start',
+                    'type' => 'checkbox',
+                    'default' => 'yes'
+                ),
+                'nationwide' => array(
+                    'label' => 'Nationwide',
+                    'type' => 'checkbox',
+                    'default' => 'yes'
+                ),
+                'dhle' => array(
+                    'label' => 'DHL eCommerce',
+                    'type' => 'checkbox',
+                    'default' => 'yes'
+                ),
+                'jnt' => array(
+                    'label' => 'J&T',
+                    'type' => 'checkbox',
+                    'default' => 'yes'
+                ),
+                'ninjavan' => array(
+                    'label' => 'Ninjavan',
+                    'checkboxgroup'   => 'end',
+                    'type' => 'checkbox',
+                    'default' => 'yes'
+                ),
              );
         } // End init_form_fields()
-
-
 
         /**
          * calculate_shipping function.
@@ -179,7 +194,6 @@ if ( ! defined( 'ABSPATH' ) ) {
             foreach ($rates as $rate) {
               $groupped[$rate->provider_code][] = $rate;
             }
-
             foreach ($groupped as $cid => $services) {
               foreach ( $services as $rate ) {
                 $courier_service_label = $rate->provider_label;
@@ -190,7 +204,6 @@ if ( ! defined( 'ABSPATH' ) ) {
                   'cost'    =>  $rate->exclusive_price
                 );
                 if($this->get_option( "courier_option" ) == 'all') {
-                  // dd($this->get_option("cust_rate"));
                   if($this->get_option("cust_rate") == 'fix_rate') {
                     if($this->settings['fix_rate'] != '' || $this->settings['fix_rate_above_1kg'] != '') {
                       if($weight <= 1 ) {
@@ -209,30 +222,33 @@ if ( ! defined( 'ABSPATH' ) ) {
                   $this->add_rate( $shipping_rate );
                 }
                 
-                if($this->get_option( "courier_option" ) != 'cheaper') {
-                  $providers = json_encode($this->settings["courier_option"]);
-                  foreach($providers as $provider) {
-                    dd($provider);
-                  }
+                if($this->get_option("courier_option") != 'cheaper') {
+                  $aa = $this->get_option("poslaju") == 'yes'? ['poslaju']: '';
+                  $aa[] .= $this->get_option("nationwide") == 'yes'? 'nationwide': '';
+                  $aa[] .= $this->get_option("dhle") == 'yes'? 'dhle': '';
+                  $aa[] .= $this->get_option("jnt") == 'yes'? 'jnt': '';
+                  $aa[] .= $this->get_option("ninjavan") == 'yes'? 'ninjavan': '';
 
-                  if($rate->provider_code == $this->get_option("courier_option")) {
-                    if($this->get_option( "cust_rate" ) == 'fix_rate') { 
-                      if($this->settings['fix_rate'] != '' || $this->settings['fix_rate_above_1kg'] != '') {
-                        if($weight <= 1 ) {
-                          $shipping_rate['cost'] = $this->settings['fix_rate'];
-                        } elseif($weight > 1 ) {
-                          $shipping_rate['cost'] = $this->settings['fix_rate_above_1kg'];
+                  foreach($aa as $bb) {
+                    if($rate->provider_code == $bb) {
+                      if($this->get_option( "cust_rate" ) == 'fix_rate') { 
+                        if($this->settings['fix_rate'] != '' || $this->settings['fix_rate_above_1kg'] != '') {
+                          if($weight <= 1 ) {
+                            $shipping_rate['cost'] = $this->settings['fix_rate'];
+                          } elseif($weight > 1 ) {
+                            $shipping_rate['cost'] = $this->settings['fix_rate_above_1kg'];
 
-                          $fkg = $this->settings['fix_rate'];
-                          $mkg = $this->settings['fix_rate_above_1kg'];
-                          $mweight = $weight - 1 ;
-                          $mPrice= $mkg * $mweight;
-                          $shipping_rate['cost'] = $fkg + $mPrice;
+                            $fkg = $this->settings['fix_rate'];
+                            $mkg = $this->settings['fix_rate_above_1kg'];
+                            $mweight = $weight - 1 ;
+                            $mPrice= $mkg * $mweight;
+                            $shipping_rate['cost'] = $fkg + $mPrice;
+                          }
                         }
                       }
+                      // Register the rate
+                      $this->add_rate( $shipping_rate );
                     }
-                    // Register the rate
-                    $this->add_rate( $shipping_rate );
                   }
                 }elseif($this->get_option( "courier_option" ) == 'cheaper') {
                   if($this->get_option( "cust_rate" ) == 'fix_rate') { 
@@ -373,10 +389,3 @@ if ( ! defined( 'ABSPATH' ) ) {
         }
       }
     }
-  
-
-  
-
-
-
-
