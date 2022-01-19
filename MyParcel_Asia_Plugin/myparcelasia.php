@@ -21,12 +21,39 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
     if ( ! class_exists( 'WC_Integration_MPA' ) ) :
 
         class WC_Integration_MPA {
+            private static $integration_id = '';
 
             /**
             * Construct the plugin.
             */
             public function __construct() {
-                 add_action( 'woocommerce_shipping_init', array( $this, 'init' ) );
+                add_action( 'woocommerce_shipping_init', array( $this, 'init' ) );
+                add_action( 'woocommerce_order_action_generate_connote_order', array( $this, 'generate_tracking_order'), 10, 1 );
+                
+                
+
+                add_action( 'admin_head', 'add_custom_order_actions_button_css' );
+                function add_custom_order_actions_button_css() {
+                    echo '
+                    <style>
+                        .wc-action-button-connote::after {
+                            font-family: woocommerce !important;
+                        }
+                        
+                        .wc-action-button-thermal::after {
+                            font-family: woocommerce !important;
+                            content: "\e00a" !important;
+                        }
+                        
+                        .wc-action-button-a4size::after {
+                            font-family: woocommerce !important;
+                            content: "\e02e" !important;
+                        }
+                    </style>
+                    ';
+                }
+
+                $this->add_component();
             }
 
             /**
@@ -34,15 +61,14 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
             */
             public function init() {
                 // start a session
-
-
                 // Checks if WooCommerce is installed.
                 if ( class_exists( 'WC_Integration' ) ) {
                     // Include our integration class.
-                    include_once 'include/mpa_shipping.php';
-
+                    include 'include/mpa_shipping.php';
                    // Register the integration.
                     add_filter( 'woocommerce_shipping_methods', array( $this, 'add_integration' ) );
+
+                    
                 } else {
                     // throw an admin error if you like
                 }
@@ -56,13 +82,290 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                 return $integrations;
             }
 
+            public function add_component() {
+                add_filter( 'woocommerce_order_actions', array( $this, 'add_generate_connote_order_action' ), 10, 1 );
+                add_filter( 'bulk_actions-edit-shop_order', array( $this, 'add_generate_connote_order_action'), 20, 1 );
+                add_filter( 'handle_bulk_actions-edit-shop_order', array( $this, 'bulk_generate_tracking_order'), 10, 3);
+            
+                add_action( 'woocommerce_admin_order_data_after_shipping_address', array( $this, 'add_print_button') );
+
+                add_action( 'woocommerce_admin_order_actions_end',  array( $this, 'add_print_bulk_button') );
+            }
+            
+            public function add_print_button($order_id){
+                $url    = esc_url('localhost:8000/Apiv3/checkout');
+                $print_connote   = esc_attr( __('Print Connote', 'woocommerce' ) );
+                $class_connote  = esc_attr( 'connote' );
+                $meta_value = get_post_custom_values('track_no');
+                
+                include 'include/mpa_shipping.php';
+                $WC_MPA_Shipping_Method = new WC_MPA_Shipping_Method();
+                $print_setting = $WC_MPA_Shipping_Method->settings['print_type'];
+                if($meta_value) {
+                    if($print_setting == 'thermal') {
+                        printf( '<a class="button wc-action-button wc-action-button-%s %s" href="http://localhost:8000/Apiv3/print_thermal/'.$meta_value[0].'" title="%s" target="_blank">%s</a>', $class_connote, $class_connote, $url, $print_connote, $print_connote );
+                    } else if($print_setting == 'a4_size') {
+                        printf( '<a class="button wc-action-button wc-action-button-%s %s" href="http://localhost:8000/Apiv3/print/'.$meta_value[0].'" title="%s" target="_blank">%s</a>', $class_connote, $class_connote, $url, $print_connote, $print_connote );
+                    }
+                }
+            }
+            public function add_print_bulk_button($order_id){
+                $url    = esc_url('localhost:8000/Apiv3/checkout');
+                $print_thermal   = esc_attr( __('Print Thermal', 'woocommerce' ) );
+                $print_a4size   = esc_attr( __('Print A4 size', 'woocommerce' ) );
+                $class_thermal  = esc_attr( 'thermal' );
+                $class_a4size  = esc_attr( 'a4size' );
+                $meta_value = get_post_custom_values('track_no');
+                
+                if($meta_value) {
+                    printf( '<a class="button wc-action-button wc-action-button-%s %s" href="http://localhost:8000/Apiv3/print_thermal/'.$meta_value[0].'" data-tip="%s" title="%s" target="_blank">%s</a>', $class_thermal, $class_thermal, $url, $print_thermal, $print_thermal );
+                    printf( '<a class="button wc-action-button wc-action-button-%s %s" href="http://localhost:8000/Apiv3/print/'.$meta_value[0].'" data-tip="%s" title="%s" target="_blank">%s</a>', $class_a4size, $class_a4size, $url, $print_a4size, $print_a4size );
+                }
+            }
+            
+            public function add_generate_connote_order_action( $actions ) {
+                $actions['generate_connote_order'] = __( 'Generate Connote Order', 'woocommerce' );
+                // $actions['print_connote_order'] = __( 'Print Connote Order', 'woocommerce' );
+                return $actions;
+            }
+            
+            public function generate_tracking_order( $order ) {
+                global $woocommerce,$wpdb;
+                $data = wc_get_order($order);
+                $order_data = $data->get_data();
+                $user_data = $data->get_user();
+                $product_data = $data->get_items();
+
+                foreach( $data->get_items( 'shipping' ) as $item_id => $item ){
+                    $weight = (int) filter_var($item['name'], FILTER_SANITIZE_NUMBER_INT);
+
+                    switch (true) {
+                        case str_contains($item['name'], 'POSLaju'):
+                            $provider_code = 'poslaju';
+                            break;
+                        case str_contains($item['name'], 'Nationwide'):
+                            $provider_code = 'nationwide';
+                            break;
+                        case str_contains($item['name'], 'JnT'):
+                            $provider_code = 'jnt';
+                            break;
+                        case str_contains($item['name'], 'DHL'):
+                            $provider_code = 'dhle';
+                            break;
+                        case str_contains($item['name'], 'Ninjavan'):
+                            $provider_code = 'ninjavan';
+                            break;
+                        }
+                }                    
+
+                $extract = array(
+                    array(
+                    "integration_order_id"=> $order_data['order_key'],
+                    "send_method"=>"dropoff",
+                    "size"=>"not box",
+                    "declared_weight"=> $weight,
+                    "provider_code"=> $provider_code,
+                    // "declared_weight"=> 3,
+                    // "provider_code"=> 'poslaju',
+                    "declared_send_at"=>"00:00",
+                    "type"=>"parcel",
+                    "sender_company_name"=>"florista",
+                    "sender_name"=>"kamil",
+                    "sender_phone"=>"011101010",
+                    "sender_email"=>"kamil@gmail.com",
+                    "sender_address_line_1"=>"Ridzuan Condo",
+                    "sender_postcode"=> "46150",
+                    "receiver_company_name"=>$order_data['billing']['company'],
+                    "receiver_name"=>$order_data['billing']['first_name'].' '.$order_data['billing']['last_name'],
+                    "receiver_phone"=>$order_data['billing']['phone'],
+                    "receiver_email"=>$order_data['billing']['email'],
+                    "receiver_address_line_1"=>$order_data['billing']['address_1'],
+                    "receiver_address_line_2"=>$order_data['billing']['address_1'],
+                    "receiver_address_line_3"=>$order_data['billing']['city'],
+                    "receiver_address_line_4"=>$order_data['billing']['state'],
+                    "receiver_postcode"=>strtolower($order_data['billing']['postcode']),
+                    "receiver_country_code"=>strtolower($order_data['billing']['country']),
+                    "content_type"=>"others",
+                    "send_date"=>"2021-12-13"
+                    )
+                );
+                
+                include 'include/mpa_shipping.php';
+                $WC_MPA_Shipping_Method = new WC_MPA_Shipping_Method();
+                self::$integration_id = $WC_MPA_Shipping_Method->settings['api_key'];
+                $print_setting = $WC_MPA_Shipping_Method->settings['print_type'];
+
+                $body = array(
+                    "api_key"=> self::$integration_id,
+                    "shipments"=> $extract
+                );
+
+                $url    = esc_url('http://localhost:8000/Apiv3/checkout');
+                $name   = esc_attr( __('Connote', 'woocommerce' ) );
+                $class  = esc_attr( 'connote' );
+
+                $response = wp_remote_post( $url, array(
+                    'method'      => 'POST',
+                    'timeout'     => 45,
+                    'redirection' => 5,
+                    'blocking'    => true,
+                    'headers'     => array(),
+                    'body'        => json_encode($body),
+                    'cookies'     => array()
+                    )
+                );
+                
+                if ( is_wp_error( $response ) ) {
+                    $error_message = $response->get_error_message();
+                    echo "Something went wrong: $error_message";
+                } else {
+                    $result = json_decode($response['body'])->data;
+                    $print_track = $result->tracking_no;
+                    if($print_track){
+                            update_post_meta($order->id,'track_no',$print_track[0]->tracking_no);
+                    }
+                }
+                // Note the event.
+                $order->add_order_note( __( 'Connote has been generated successfully.', 'woocommerce' ), false, true );
+            
+                do_action( 'woocommerce_after_resend_order_email', $order, 'new_order' );
+            
+                // Change the post saved message.
+                // add_filter( 'redirect_post_location', array( 'WC_Meta_Box_Order_Actions', 'set_email_sent_message' ) );
+            }
+            
+            public function bulk_generate_tracking_order( $redirect_to, $action, $post_ids ) {
+                global $woocommerce,$wpdb;
+
+                foreach ( $post_ids as $key=>$post_id ) {
+                    $data = wc_get_order( $post_id );
+                    $order_data = $data->get_data();
+                    $user_data = $data->get_user();
+                    $product_data = $data->get_items();
+                    
+                    include 'include/mpa_shipping.php';
+                    $WC_MPA_Shipping_Method = new WC_MPA_Shipping_Method();
+                    self::$integration_id = $WC_MPA_Shipping_Method->settings['api_key'];
+                    $print_setting = $WC_MPA_Shipping_Method->settings['print_type'];
+
+                    foreach( $data->get_items( 'shipping' ) as $item_id => $item ){
+                        $weight = (int) filter_var($item['name'], FILTER_SANITIZE_NUMBER_INT);
+                        switch (true) {
+                            case str_contains($item['name'], 'POSLaju'):
+                                $provider_code = 'poslaju';
+                                break;
+                            case str_contains($item['name'], 'Nationwide'):
+                                $provider_code = 'nationwide';
+                                break;
+                            case str_contains($item['name'], 'JnT'):
+                                $provider_code = 'jnt';
+                                break;
+                            case str_contains($item['name'], 'DHL'):
+                                $provider_code = 'dhle';
+                                break;
+                            case str_contains($item['name'], 'Ninjavan'):
+                                $provider_code = 'ninjavan';
+                                break;
+                            }
+                    }
+                    $postmeta_track_no = get_post_meta($post_id,'track_no', true);
+
+                    if($postmeta_track_no) {
+                        //if already create connote
+                        $list_track_no[] = $postmeta_track_no;
+                    } else {
+                        //if not yet create order
+                        $extract = array(
+                            array(
+                                "integration_order_id"=> $order_data['order_key'],
+                                "send_method"=>"dropoff",
+                                "size"=>"not box",
+                                "declared_weight"=> $weight,
+                                "provider_code"=> $provider_code,
+                                // "declared_weight"=> 3,
+                                // "provider_code"=> 'poslaju',
+                                "declared_send_at"=>"00:00",
+                                "type"=>"parcel",
+                                "sender_company_name"=>"florista",
+                                "sender_name"=>"kamil",
+                                "sender_phone"=>"011101010",
+                                "sender_email"=>"kamil@gmail.com",
+                                "sender_address_line_1"=>"Ridzuan Condo",
+                                "sender_postcode"=> "46150",
+                                "receiver_company_name"=>$order_data['billing']['company'],
+                                "receiver_name"=>$order_data['billing']['first_name'].' '.$order_data['billing']['last_name'],
+                                "receiver_phone"=>$order_data['billing']['phone'],
+                                "receiver_email"=>$order_data['billing']['email'],
+                                "receiver_address_line_1"=>$order_data['billing']['address_1'],
+                                "receiver_address_line_2"=>$order_data['billing']['address_1'],
+                                "receiver_address_line_3"=>$order_data['billing']['city'],
+                                "receiver_address_line_4"=>$order_data['billing']['state'],
+                                "receiver_postcode"=>strtolower($order_data['billing']['postcode']),
+                                "receiver_country_code"=>strtolower($order_data['billing']['country']),
+                                "content_type"=>"others",
+                                "send_date"=>"2021-12-13"
+                            )
+                        );
+                        
+                        $body = array(
+                            "api_key"=> self::$integration_id,
+                            "shipments"=> $extract
+                        );
+                        $url    = esc_url('http://localhost:8000/Apiv3/checkout');
+                        $name   = esc_attr( __('Connote', 'woocommerce' ) );
+                        $class  = esc_attr( 'connote' );
+                        
+                        $response = wp_remote_post( $url, array(
+                            'method'      => 'POST',
+                            'timeout'     => 45,
+                            'redirection' => 5,
+                            'blocking'    => true,
+                            'headers'     => array(),
+                            'body'        => json_encode($body),
+                            'cookies'     => array()
+                            )
+                        );
+                        $error_msg = json_decode($response['body'])->message[0]->message;
+                        if(strpos($error_msg, "Insufficient balance") !== false) {
+                            dd($error_msg);
+                            return $redirect_to;
+                        } else if(strpos($error_msg, "already exist") !== false) {                            
+                            dd($error_msg);
+                            return $redirect_to;
+                        } else {
+                            $result = json_decode($response['body']);
+                            $message = $result->message;
+                            if($message == "success") {
+                                $success = $result->data;
+            
+                                $print_track = $success->tracking_no;
+                                if($print_track){
+                                    // foreach($print_track as $key=>$value) {
+                                    update_post_meta($post_id,'track_no',$print_track[0]->tracking_no);
+                                    $list_track_no[] = $print_track[0]->tracking_no;
+                                    // }
+                                    // return $success->awb_url;
+                                } else {
+                                    dd('print track not found -'.$result);
+                                    return $redirect_to;
+                                }
+                            } else {
+                                dd('message not success -'.$result);
+                                return $redirect_to;
+                            }
+
+                        }
+                        
+                    }
+                }
+                if($print_setting == 'thermal') {
+                    return 'http://localhost:8000/Apiv3/print_thermal/'.implode('-', $list_track_no); //later need to change to site_url
+                } else if($print_setting == 'a4_size') {
+                    return 'http://localhost:8000/Apiv3/print/'.implode('-', $list_track_no); //later need to change to site_url
+                }
+            }
         }
-
         $WC_Integration_MPA = new WC_Integration_MPA( __FILE__ );
-
      endif;
-
 }
-
-
 ?>

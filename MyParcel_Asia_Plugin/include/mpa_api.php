@@ -65,9 +65,8 @@ if ( ! class_exists( 'MPA_Shipping_API' ) ) {
                     "sender_postcode": "'.self::$sender_postcode.'",
                     "receiver_postcode": "'.$destination["postcode"].'",
                     "declared_weight": '.$weight.'
-                    
                 }';
-            // dd('d'.$f);
+
             if($WC_Country->get_base_country()=='MY' && $destination["country"] == 'MY'){
                 $ch = curl_init();
                 curl_setopt($ch, CURLOPT_URL, $url);
@@ -80,9 +79,9 @@ if ( ! class_exists( 'MPA_Shipping_API' ) ) {
                 ob_end_clean();
                 curl_close ($ch);
                 $json = json_decode($r);
-                if(sizeof($json->rates) > 0){
+                if(sizeof($json->data->rates) > 0){
                 
-                    return $json->rates;
+                    return $json->data->rates;
                 }
 
             } else {
