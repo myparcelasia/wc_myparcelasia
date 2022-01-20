@@ -98,15 +98,16 @@ if ( ! class_exists( 'WC_MPA_Shipping_Method' ) ) {
             'required'          => true
         ),
         'cust_rate'           => array(
-            'title'             => __( 'Display Shipping Rate', 'myparcelasia' ),
+            'title'             => __( '<font color="red">*</font>Display Shipping Rate', 'myparcelasia' ),
 					  'id'              => 'cust_rate',
             'type'              => 'select',
             'description'       => __( "You may display different types of shipping rates on your checkout page:<br/><br/>
                                       1) Flat Rate: A fixed amount based on product weight.<br/>
                                       2) MPA Rate: The rate you're enjoying right now. Eg: RM6 from 1kg", 'myparcelasia' ),
             'desc_tip'          => true,
-            'default'           => 'flat_rate', 
-            'options'           => array( 'flat_rate'=>'Flat Rate','mpa_rate'=>'MPA Rate'),
+            'default'           => 'mpa_rate', 
+            'options'           => array( 'mpa_rate'=>'MPA Rate', 'flat_rate'=>'Flat Rate'),
+            'required'          => true
         ),
         'flat_rate'           => array(
           'title'             => __( 'Flat Rate (RM)', 'myparcelasia' ),
@@ -124,7 +125,7 @@ if ( ! class_exists( 'WC_MPA_Shipping_Method' ) ) {
           'placeholder'       => 'RM 0.00'
         ),
         'poslaju' => array(
-            'title' => __( 'Display Courier Option', 'myparcelasia' ),
+            'title' => __( '<font color="red">*</font>Display Courier Option', 'myparcelasia' ),
             'label' => 'Poslaju',
             'type' => 'checkbox',
             'default' => 'yes',
@@ -154,13 +155,23 @@ if ( ! class_exists( 'WC_MPA_Shipping_Method' ) ) {
             'default' => 'yes',
             'checkboxgroup'   => 'end',
         ),
+        'send_method'           => array(
+            'title'             => __( '<font color="red">*</font>Send Method', 'myparcelasia' ),
+            'id'              => 'send_method',
+            'type'              => 'select',
+            'desc_tip'          => true,
+            'default'           => 'drop_off', 
+            'options'           => array( 'drop_off'=>'Drop Off','pickup'=>'Pickup'),
+            'required'          => true
+        ),
         'print_type'           => array(
-            'title'             => __( 'Print Type', 'myparcelasia' ),
+            'title'             => __( '<font color="red">*</font>Print Type', 'myparcelasia' ),
 					  'id'              => 'print_type',
             'type'              => 'select',
             'desc_tip'          => true,
             'default'           => 'a4_size', 
             'options'           => array( 'a4_size'=>'A4 size','thermal'=>'Thermal size'),
+            'required'          => true
         ),
         'topup_balance' => array(
           'title'       => __( 'Topup Balance (RM)', 'myparcelasia' ),
