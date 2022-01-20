@@ -8,9 +8,9 @@ if ( ! class_exists( 'MPA_Shipping_Config' ) ) {
          */
         public function sethost(){
             if ($_ENV['APP_URL'] && getenv('WP_ENV') == 'development') {
-                return $_ENV['APP_URL'].'/api/v3';
+                return $_ENV['APP_URL'].'/apiv3';
             } else {
-                return 'https://app.myparcelasia.com/api/v3';
+                return 'https://app.myparcelasia.com/apiv3';
             }
         }
     }
