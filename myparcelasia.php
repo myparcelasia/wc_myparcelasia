@@ -144,19 +144,19 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                     $weight = (int) filter_var($item['name'], FILTER_SANITIZE_NUMBER_INT);
 
                     switch (true) {
-                        case str_contains($item['name'], 'POSLaju'):
+                        case strpos($item['name'], 'POSLaju') !== false:
                             $provider_code = 'poslaju';
                             break;
-                        case str_contains($item['name'], 'Nationwide'):
+                        case strpos($item['name'], 'Nationwide') !== false:
                             $provider_code = 'nationwide';
                             break;
-                        case str_contains($item['name'], 'JnT'):
+                        case strpos($item['name'], 'JnT') !== false:
                             $provider_code = 'jnt';
                             break;
-                        case str_contains($item['name'], 'DHL'):
+                        case strpos($item['name'], 'DHL') !== false:
                             $provider_code = 'dhle';
                             break;
-                        case str_contains($item['name'], 'Ninjavan'):
+                        case strpos($item['name'], 'Ninjavan') !== false:
                             $provider_code = 'ninjavan';
                             break;
                         }
@@ -167,10 +167,8 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                     "integration_order_id"=> $order_data['order_key'],
                     "send_method"=>"dropoff",
                     "size"=>"not box",
-                    "declared_weight"=> $weight,
+                    "declared_weight"=> $weight? $weight:0.1,
                     "provider_code"=> $provider_code,
-                    // "declared_weight"=> 3,
-                    // "provider_code"=> 'poslaju',
                     "declared_send_at"=>"00:00",
                     "type"=>"parcel",
                     "sender_company_name"=>"florista",
@@ -241,6 +239,11 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
             public function bulk_generate_tracking_order( $redirect_to, $action, $post_ids ) {
                 $WC_MPA_Config = new MPA_Shipping_Config();
                 global $woocommerce,$wpdb;
+                include 'include/mpa_shipping.php';
+                $WC_MPA_Shipping_Method = new WC_MPA_Shipping_Method();
+                self::$integration_id = $WC_MPA_Shipping_Method->settings['api_key'];
+                $print_setting = $WC_MPA_Shipping_Method->settings['print_type'];
+                $send_method = $WC_MPA_Shipping_Method->settings['send_method'];
 
                 foreach ( $post_ids as $key=>$post_id ) {
                     $data = wc_get_order( $post_id );
@@ -248,16 +251,9 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                     $user_data = $data->get_user();
                     $product_data = $data->get_items();
                     
-                    include 'include/mpa_shipping.php';
-                    $WC_MPA_Shipping_Method = new WC_MPA_Shipping_Method();
-                    self::$integration_id = $WC_MPA_Shipping_Method->settings['api_key'];
-                    $print_setting = $WC_MPA_Shipping_Method->settings['print_type'];
 
                     foreach( $data->get_items( 'shipping' ) as $item_id => $item ){
                         $weight = (int) filter_var($item['name'], FILTER_SANITIZE_NUMBER_INT);
-
-                        // $WC_MPA_Config = new MPA_Shipping_Config();
-                        // dd($WC_MPA_Config->sethost());
                         switch (true) {
                             case str_contains($item['name'], 'POSLaju'):
                                 $provider_code = 'poslaju';
@@ -288,10 +284,8 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                                 "integration_order_id"=> $order_data['order_key'],
                                 "send_method"=>"dropoff",
                                 "size"=>"not box",
-                                "declared_weight"=> $weight,
+                                "declared_weight"=> $weight>0 ? $weight : 0.1,
                                 "provider_code"=> $provider_code,
-                                // "declared_weight"=> 3,
-                                // "provider_code"=> 'poslaju',
                                 "declared_send_at"=>"00:00",
                                 "type"=>"parcel",
                                 "sender_company_name"=>"florista",
