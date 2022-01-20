@@ -7,6 +7,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 
 if ( ! class_exists( 'WC_MPA_Shipping_Method' ) ) {
+  include 'mpa_config.php';
   class WC_MPA_Shipping_Method extends WC_Shipping_Method {
 
     /**
@@ -57,7 +58,8 @@ if ( ! class_exists( 'WC_MPA_Shipping_Method' ) ) {
      */
     //loading $this->init_form_fields();
     public function init_form_fields() {
-      $url = "localhost:8000/Apiv3/index";
+      $WC_MPA_Config = new MPA_Shipping_Config();
+      $url = $WC_MPA_Config->sethost()."/index";
       
       $f = '{
           "api_key": "'.$this->get_option("api_key").'"

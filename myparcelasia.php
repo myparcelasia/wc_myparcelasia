@@ -17,8 +17,14 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', get_option( 'active_plugins' ) ) ) ) {
 
+    
 
     if ( ! class_exists( 'WC_Integration_MPA' ) ) :
+
+        require __DIR__.'/vendor/autoload.php';
+        include 'include/mpa_config.php';
+        $dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
+        $dotenv->load();
 
         class WC_Integration_MPA {
             private static $integration_id = '';
@@ -29,9 +35,6 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
             public function __construct() {
                 add_action( 'woocommerce_shipping_init', array( $this, 'init' ) );
                 add_action( 'woocommerce_order_action_generate_connote_order', array( $this, 'generate_tracking_order'), 10, 1 );
-                
-                
-
                 add_action( 'admin_head', 'add_custom_order_actions_button_css' );
                 function add_custom_order_actions_button_css() {
                     echo '
@@ -86,14 +89,13 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                 add_filter( 'woocommerce_order_actions', array( $this, 'add_generate_connote_order_action' ), 10, 1 );
                 add_filter( 'bulk_actions-edit-shop_order', array( $this, 'add_generate_connote_order_action'), 20, 1 );
                 add_filter( 'handle_bulk_actions-edit-shop_order', array( $this, 'bulk_generate_tracking_order'), 10, 3);
-            
                 add_action( 'woocommerce_admin_order_data_after_shipping_address', array( $this, 'add_print_button') );
-
                 add_action( 'woocommerce_admin_order_actions_end',  array( $this, 'add_print_bulk_button') );
             }
             
             public function add_print_button($order_id){
-                $url    = esc_url('localhost:8000/Apiv3/checkout');
+                $WC_MPA_Config = new MPA_Shipping_Config();
+                $url    = esc_url($WC_MPA_Config->sethost().'/checkout');
                 $print_connote   = esc_attr( __('Print Connote', 'woocommerce' ) );
                 $class_connote  = esc_attr( 'connote' );
                 $meta_value = get_post_custom_values('track_no');
@@ -103,14 +105,15 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                 $print_setting = $WC_MPA_Shipping_Method->settings['print_type'];
                 if($meta_value) {
                     if($print_setting == 'thermal') {
-                        printf( '<a class="button wc-action-button wc-action-button-%s %s" href="http://localhost:8000/Apiv3/print_thermal/'.$meta_value[0].'" title="%s" target="_blank">%s</a>', $class_connote, $class_connote, $url, $print_connote, $print_connote );
+                        printf( '<a class="button wc-action-button wc-action-button-%s %s" href="'.$WC_MPA_Config->sethost().'/print_thermal/'.$meta_value[0].'" title="%s" target="_blank">%s</a>', $class_connote, $class_connote, $url, $print_connote, $print_connote );
                     } else if($print_setting == 'a4_size') {
-                        printf( '<a class="button wc-action-button wc-action-button-%s %s" href="http://localhost:8000/Apiv3/print/'.$meta_value[0].'" title="%s" target="_blank">%s</a>', $class_connote, $class_connote, $url, $print_connote, $print_connote );
+                        printf( '<a class="button wc-action-button wc-action-button-%s %s" href="'.$WC_MPA_Config->sethost().'/print/'.$meta_value[0].'" title="%s" target="_blank">%s</a>', $class_connote, $class_connote, $url, $print_connote, $print_connote );
                     }
                 }
             }
             public function add_print_bulk_button($order_id){
-                $url    = esc_url('localhost:8000/Apiv3/checkout');
+                $WC_MPA_Config = new MPA_Shipping_Config();
+                $url    = esc_url($WC_MPA_Config->sethost().'/checkout');
                 $print_thermal   = esc_attr( __('Print Thermal', 'woocommerce' ) );
                 $print_a4size   = esc_attr( __('Print A4 size', 'woocommerce' ) );
                 $class_thermal  = esc_attr( 'thermal' );
@@ -118,8 +121,8 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                 $meta_value = get_post_custom_values('track_no');
                 
                 if($meta_value) {
-                    printf( '<a class="button wc-action-button wc-action-button-%s %s" href="http://localhost:8000/Apiv3/print_thermal/'.$meta_value[0].'" data-tip="%s" title="%s" target="_blank">%s</a>', $class_thermal, $class_thermal, $url, $print_thermal, $print_thermal );
-                    printf( '<a class="button wc-action-button wc-action-button-%s %s" href="http://localhost:8000/Apiv3/print/'.$meta_value[0].'" data-tip="%s" title="%s" target="_blank">%s</a>', $class_a4size, $class_a4size, $url, $print_a4size, $print_a4size );
+                    printf( '<a class="button wc-action-button wc-action-button-%s %s" href="'.$WC_MPA_Config->sethost().'/print_thermal/'.$meta_value[0].'" data-tip="%s" title="%s" target="_blank">%s</a>', $class_thermal, $class_thermal, $url, $print_thermal, $print_thermal );
+                    printf( '<a class="button wc-action-button wc-action-button-%s %s" href="'.$WC_MPA_Config->sethost().'/print/'.$meta_value[0].'" data-tip="%s" title="%s" target="_blank">%s</a>', $class_a4size, $class_a4size, $url, $print_a4size, $print_a4size );
                 }
             }
             
@@ -130,6 +133,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
             }
             
             public function generate_tracking_order( $order ) {
+                $WC_MPA_Config = new MPA_Shipping_Config();
                 global $woocommerce,$wpdb;
                 $data = wc_get_order($order);
                 $order_data = $data->get_data();
@@ -200,7 +204,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                     "shipments"=> $extract
                 );
 
-                $url    = esc_url('http://localhost:8000/Apiv3/checkout');
+                $url    = esc_url($WC_MPA_Config->sethost().'/checkout');
                 $name   = esc_attr( __('Connote', 'woocommerce' ) );
                 $class  = esc_attr( 'connote' );
 
@@ -235,6 +239,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
             }
             
             public function bulk_generate_tracking_order( $redirect_to, $action, $post_ids ) {
+                $WC_MPA_Config = new MPA_Shipping_Config();
                 global $woocommerce,$wpdb;
 
                 foreach ( $post_ids as $key=>$post_id ) {
@@ -250,6 +255,9 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 
                     foreach( $data->get_items( 'shipping' ) as $item_id => $item ){
                         $weight = (int) filter_var($item['name'], FILTER_SANITIZE_NUMBER_INT);
+
+                        // $WC_MPA_Config = new MPA_Shipping_Config();
+                        // dd($WC_MPA_Config->sethost());
                         switch (true) {
                             case str_contains($item['name'], 'POSLaju'):
                                 $provider_code = 'poslaju';
@@ -311,7 +319,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                             "api_key"=> self::$integration_id,
                             "shipments"=> $extract
                         );
-                        $url    = esc_url('http://localhost:8000/Apiv3/checkout');
+                        $url    = esc_url($WC_MPA_Config->sethost().'/checkout');
                         $name   = esc_attr( __('Connote', 'woocommerce' ) );
                         $class  = esc_attr( 'connote' );
                         
@@ -358,10 +366,11 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                         
                     }
                 }
+                $WC_MPA_Config = new MPA_Shipping_Config();
                 if($print_setting == 'thermal') {
-                    return 'http://localhost:8000/Apiv3/print_thermal/'.implode('-', $list_track_no); //later need to change to site_url
+                    return $WC_MPA_Config->sethost().'/print_thermal/'.implode('-', $list_track_no); //later need to change to site_url
                 } else if($print_setting == 'a4_size') {
-                    return 'http://localhost:8000/Apiv3/print/'.implode('-', $list_track_no); //later need to change to site_url
+                    return $WC_MPA_Config->sethost().'/print/'.implode('-', $list_track_no); //later need to change to site_url
                 }
             }
         }

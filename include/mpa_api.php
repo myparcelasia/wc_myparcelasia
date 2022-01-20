@@ -1,5 +1,6 @@
 <?php 
 if ( ! class_exists( 'MPA_Shipping_API' ) ) {
+    include 'mpa_config.php';
     class MPA_Shipping_API {
 
         private static $apikey = '';
@@ -8,8 +9,6 @@ if ( ! class_exists( 'MPA_Shipping_API' ) ) {
         private static $sender_postcode = '';
         private static $sender_state = '';
         private static $sender_country = '';
-        private static $api_url = "localhost:8000/Apiv3/check_price"; //local
-        // private static $api_url = "https://myparcelasia.com/Apiv3/check_price"; //production
 
          /**
          * init
@@ -46,8 +45,10 @@ if ( ! class_exists( 'MPA_Shipping_API' ) ) {
                  }
                  $i++;
             }
-            
-            $url = self::$api_url;
+
+            $WC_MPA_Config = new MPA_Shipping_Config();
+            // $url = $WC_MPA_Config->sethost().'/check_price';
+            $url = 'localhost:8000/Apiv3/check_price';
 
             $WC_MPA_Shipping_Method = new WC_MPA_Shipping_Method();
 
@@ -79,6 +80,7 @@ if ( ! class_exists( 'MPA_Shipping_API' ) ) {
                 ob_end_clean();
                 curl_close ($ch);
                 $json = json_decode($r);
+                // dd($url);
                 if(sizeof($json->data->rates) > 0){
                 
                     return $json->data->rates;
