@@ -1,1 +1,1 @@
-# wc_mpa_plugin
+# WooCommerce MyParcel Asia
