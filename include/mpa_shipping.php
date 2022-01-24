@@ -60,7 +60,7 @@ if ( ! class_exists( 'WC_MPA_Shipping_Method' ) ) {
     public function init_form_fields() {
       $WC_MPA_Config = new MPA_Shipping_Config();
       $url = $WC_MPA_Config->sethost()."/index";
-      
+      // dd($url);
       $f = '{
           "api_key": "'.$this->get_option("api_key").'"
       }';
@@ -154,6 +154,12 @@ if ( ! class_exists( 'WC_MPA_Shipping_Method' ) ) {
             'type' => 'checkbox',
             'default' => 'yes',
             'checkboxgroup'   => 'end',
+        ),
+        'phone_number'          => array(
+            'title'             => __( '<font color="red">*</font>Phone Number', 'myparcelasia' ),
+            'id'                => 'phone_number',
+            'type'              => 'text',
+            'required'          => true
         ),
         'send_method'           => array(
             'title'             => __( '<font color="red">*</font>Send Method', 'myparcelasia' ),
