@@ -134,10 +134,19 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
             public function generate_tracking_order( $order ) {
                 $WC_MPA_Config = new MPA_Shipping_Config();
                 global $woocommerce,$wpdb;
+                
+                include 'include/mpa_shipping.php';
+                $WC_MPA_Shipping_Method = new WC_MPA_Shipping_Method();
+                self::$integration_id = $WC_MPA_Shipping_Method->settings['api_key'];
+                $print_setting = $WC_MPA_Shipping_Method->settings['print_type'];
+                $phone_number = $WC_MPA_Shipping_Method->settings['phone_number'];
+                $send_method = $WC_MPA_Shipping_Method->settings['send_method'];
+
                 $data = wc_get_order($order);
                 $order_data = $data->get_data();
                 $user_data = $data->get_user();
                 $product_data = $data->get_items();
+                $sender_details = WC()->countries;
 
                 foreach( $data->get_items( 'shipping' ) as $item_id => $item ){
                     $weight = (int) filter_var($item['name'], FILTER_SANITIZE_NUMBER_INT);
@@ -159,71 +168,75 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                             $provider_code = 'ninjavan';
                             break;
                         }
-                }                    
-
-                $extract = array(
-                    array(
-                    "integration_order_id"=> $order_data['order_key'],
-                    "send_method"=>"dropoff",
-                    "size"=>"not box",
-                    "declared_weight"=> $weight? $weight:0.1,
-                    "provider_code"=> $provider_code,
-                    "declared_send_at"=>"00:00",
-                    "type"=>"parcel",
-                    "sender_company_name"=>"florista",
-                    "sender_name"=>"kamil",
-                    "sender_phone"=>"011101010",
-                    "sender_email"=>"kamil@gmail.com",
-                    "sender_address_line_1"=>"Ridzuan Condo",
-                    "sender_postcode"=> "46150",
-                    "receiver_company_name"=>$order_data['billing']['company'],
-                    "receiver_name"=>$order_data['billing']['first_name'].' '.$order_data['billing']['last_name'],
-                    "receiver_phone"=>$order_data['billing']['phone'],
-                    "receiver_email"=>$order_data['billing']['email'],
-                    "receiver_address_line_1"=>$order_data['billing']['address_1'],
-                    "receiver_address_line_2"=>$order_data['billing']['address_1'],
-                    "receiver_address_line_3"=>$order_data['billing']['city'],
-                    "receiver_address_line_4"=>$order_data['billing']['state'],
-                    "receiver_postcode"=>strtolower($order_data['billing']['postcode']),
-                    "receiver_country_code"=>strtolower($order_data['billing']['country']),
-                    "content_type"=>"others",
-                    "send_date"=>"2021-12-13"
-                    )
-                );
+                }
+                $postmeta_track_no = get_post_meta($order->id,'track_no', true);
                 
-                include 'include/mpa_shipping.php';
-                $WC_MPA_Shipping_Method = new WC_MPA_Shipping_Method();
-                self::$integration_id = $WC_MPA_Shipping_Method->settings['api_key'];
-                $print_setting = $WC_MPA_Shipping_Method->settings['print_type'];
-
-                $body = array(
-                    "api_key"=> self::$integration_id,
-                    "shipments"=> $extract
-                );
-
-                $url    = esc_url($WC_MPA_Config->sethost().'/checkout');
-                $name   = esc_attr( __('Connote', 'woocommerce' ) );
-                $class  = esc_attr( 'connote' );
-
-                $response = wp_remote_post( $url, array(
-                    'method'      => 'POST',
-                    'timeout'     => 45,
-                    'redirection' => 5,
-                    'blocking'    => true,
-                    'headers'     => array(),
-                    'body'        => json_encode($body),
-                    'cookies'     => array()
-                    )
-                );
-                
-                if ( is_wp_error( $response ) ) {
-                    $error_message = $response->get_error_message();
-                    echo "Something went wrong: $error_message";
+                if($postmeta_track_no) {
+                    //if already create connote
+                    //should popup message connote already exist
                 } else {
-                    $result = json_decode($response['body'])->data;
-                    $print_track = $result->tracking_no;
-                    if($print_track){
-                            update_post_meta($order->id,'track_no',$print_track[0]->tracking_no);
+                    $extract = array(
+                        array(
+                        "integration_order_id"=> $order_data['order_key'],
+                        "send_method"=> $send_method,
+                        "size"=>"not box",
+                        "declared_weight"=> $weight>0 ? $weight : 0.1,
+                        "provider_code"=> $provider_code,
+                        "declared_send_at"=> $order_data['date_created']->date('Y-m-d H:i:s'),
+                        "type"=>"parcel",
+                        "sender_company_name"=>get_bloginfo( 'name' ),
+                        "sender_name"=> get_bloginfo( 'name' ),
+                        "sender_phone"=> $phone_number,
+                        "sender_email"=> get_bloginfo('admin_email'),
+                        "sender_address_line_1"=>$sender_details->get_base_address(),
+                        "sender_address_line_2"=>$sender_details->get_base_address_2(),
+                        "sender_address_line_3"=>$sender_details->get_base_city(),
+                        "sender_address_line_4"=>$sender_details->get_base_state(),
+                        "sender_postcode"=> $sender_details->get_base_postcode(),
+                        "receiver_company_name"=> $order_data['billing']['company'],
+                        "receiver_name"=> $order_data['billing']['first_name'].' '.$order_data['billing']['last_name'],
+                        "receiver_phone"=> $order_data['billing']['phone'],
+                        "receiver_email"=> $order_data['billing']['email'],
+                        "receiver_address_line_1"=> $order_data['billing']['address_1'],
+                        "receiver_address_line_2"=> $order_data['billing']['address_1'],
+                        "receiver_address_line_3"=> $order_data['billing']['city'],
+                        "receiver_address_line_4"=> $order_data['billing']['state'],
+                        "receiver_postcode"=> strtolower($order_data['billing']['postcode']),
+                        "receiver_country_code"=> strtolower($order_data['billing']['country']),
+                        "content_type"=> "others",
+                        "send_date"=> $order_data['date_created']->date('Y-m-d H:i:s')
+                        )
+                    );
+
+                    $body = array(
+                        "api_key"=> self::$integration_id,
+                        "shipments"=> $extract
+                    );
+
+                    $url    = esc_url($WC_MPA_Config->sethost().'/checkout');
+                    $name   = esc_attr( __('Connote', 'woocommerce' ) );
+                    $class  = esc_attr( 'connote' );
+
+                    $response = wp_remote_post( $url, array(
+                        'method'      => 'POST',
+                        'timeout'     => 45,
+                        'redirection' => 5,
+                        'blocking'    => true,
+                        'headers'     => array(),
+                        'body'        => json_encode($body),
+                        'cookies'     => array()
+                        )
+                    );
+                    
+                    if ( is_wp_error( $response ) ) {
+                        $error_message = $response->get_error_message();
+                        echo "Something went wrong: $error_message";
+                    } else {
+                        $result = json_decode($response['body'])->data;
+                        $print_track = $result->tracking_no;
+                        if($print_track){
+                                update_post_meta($order->id,'track_no',$print_track[0]->tracking_no);
+                        }
                     }
                 }
                 // Note the event.
@@ -286,31 +299,51 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                                 "size"=>"not box",
                                 "declared_weight"=> $weight>0 ? $weight : 0.1,
                                 "provider_code"=> $provider_code,
-                                "declared_send_at"=>$order_data['date_created']->date('Y-m-d H:i:s'),
+                                "declared_send_at"=> $order_data['date_created']->date('Y-m-d H:i:s'),
                                 "type"=>"parcel",
                                 "sender_company_name"=>get_bloginfo( 'name' ),
                                 "sender_name"=> get_bloginfo( 'name' ),
                                 "sender_phone"=> $phone_number,
                                 "sender_email"=> get_bloginfo('admin_email'),
-                                "sender_address_line_1"=>$sender_details->get_base_address(),
-                                "sender_address_line_2"=>$sender_details->get_base_address_2(),
-                                "sender_address_line_3"=>$sender_details->get_base_city(),
-                                "sender_address_line_4"=>$sender_details->get_base_state(),
+                                "sender_address_line_1"=> $sender_details->get_base_address(),
+                                "sender_address_line_2"=> $sender_details->get_base_address_2(),
+                                "sender_address_line_3"=> $sender_details->get_base_city(),
+                                "sender_address_line_4"=> $sender_details->get_base_state(),
                                 "sender_postcode"=> $sender_details->get_base_postcode(),
-                                "receiver_company_name"=>$order_data['billing']['company'],
-                                "receiver_name"=>$order_data['billing']['first_name'].' '.$order_data['billing']['last_name'],
-                                "receiver_phone"=>$order_data['billing']['phone'],
-                                "receiver_email"=>$order_data['billing']['email'],
-                                "receiver_address_line_1"=>$order_data['billing']['address_1'],
-                                "receiver_address_line_2"=>$order_data['billing']['address_2'],
-                                "receiver_address_line_3"=>$order_data['billing']['city'],
-                                "receiver_address_line_4"=>$order_data['billing']['state'],
-                                "receiver_postcode"=>strtolower($order_data['billing']['postcode']),
-                                "receiver_country_code"=>strtolower($order_data['billing']['country']),
-                                "content_type"=>"others",
-                                "send_date"=>$order_data['date_created']->date('Y-m-d H:i:s')
+                                "receiver_company_name"=> $order_data['billing']['company'],
+                                "receiver_name"=> $order_data['billing']['first_name'].' '.$order_data['billing']['last_name'],
+                                "receiver_phone"=> $order_data['billing']['phone'],
+                                "receiver_email"=> $order_data['billing']['email'],
+                                "receiver_address_line_1"=> $order_data['billing']['address_1'],
+                                "receiver_address_line_2"=> $order_data['billing']['address_2'],
+                                "receiver_address_line_3"=> $order_data['billing']['city'],
+                                "receiver_address_line_4"=> $order_data['billing']['state'],
+                                "receiver_postcode"=> strtolower($order_data['billing']['postcode']),
+                                "receiver_country_code"=> strtolower($order_data['billing']['country']),
+                                "content_type"=> "others",
+                                "send_date"=> $order_data['date_created']->date('Y-m-d H:i:s')
                             )
                         );
+                        
+                        // function _custom_order_action_process( $extract ) {               
+                        //     if ( ! $extract ) {                
+                        //         add_filter( 'redirect_post_location', 'redirect_post_location', 99 );                    }
+                        //     if ( ! $extract ) {                
+                        //         add_filter( 'redirect_post_location', 'redirect_post_location', 99 );                
+                        //     }
+                        
+                        //     //here we go...
+                        
+                        // }
+                        // add_action( 'woocommerce_order_action_custom_order_action','_custom_order_action_process' );
+                        
+                        // function redirect_post_location( $location ) {
+                        //     remove_filter( 'redirect_post_location', __FUNCTION__, 99 ); // remove this filter so it will only work with your validations.
+                        //     $location = add_query_arg('message', 99, $location); // 99 is empty message, it will not show. Or if by any chance it has a message, you change to higher number.
+                        //     return $location;
+                        // }
+
+                        // dd('fail exit 212');
                         
                         $body = array(
                             "api_key"=> self::$integration_id,
