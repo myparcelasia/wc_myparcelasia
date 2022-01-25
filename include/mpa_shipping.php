@@ -166,8 +166,8 @@ if ( ! class_exists( 'WC_MPA_Shipping_Method' ) ) {
             'id'              => 'send_method',
             'type'              => 'select',
             'desc_tip'          => true,
-            'default'           => 'drop_off', 
-            'options'           => array( 'drop_off'=>'Drop Off','pickup'=>'Pickup'),
+            'default'           => 'dropoff', 
+            'options'           => array( 'dropoff'=>'Drop Off','pickup'=>'Pickup'),
             'required'          => true
         ),
         'print_type'           => array(
