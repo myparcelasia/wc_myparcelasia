@@ -60,7 +60,6 @@ if ( ! class_exists( 'WC_MPA_Shipping_Method' ) ) {
     public function init_form_fields() {
       $WC_MPA_Config = new MPA_Shipping_Config();
       $url = $WC_MPA_Config->sethost()."/index";
-      // dd($url);
       $f = '{
           "api_key": "'.$this->get_option("api_key").'"
       }';
@@ -97,33 +96,33 @@ if ( ! class_exists( 'WC_MPA_Shipping_Method' ) ) {
             'type'              => 'text',
             'required'          => true
         ),
-        'cust_rate'           => array(
-            'title'             => __( '<font color="red">*</font>Display Shipping Rate', 'myparcelasia' ),
-					  'id'              => 'cust_rate',
-            'type'              => 'select',
-            'description'       => __( "You may display different types of shipping rates on your checkout page:<br/><br/>
-                                      1) Flat Rate: A fixed amount based on product weight.<br/>
-                                      2) MPA Rate: The rate you're enjoying right now. Eg: RM6 from 1kg", 'myparcelasia' ),
-            'desc_tip'          => true,
-            'default'           => 'mpa_rate', 
-            'options'           => array( 'mpa_rate'=>'MPA Rate', 'flat_rate'=>'Flat Rate'),
-            'required'          => true
-        ),
-        'flat_rate'           => array(
-          'title'             => __( 'Flat Rate (RM)', 'myparcelasia' ),
-          'type'              => 'text',
-          'description'       => __( 'Shipping rate (RM) for first 1KG', 'myparcelasia' ),
-          'desc_tip'          => false,
-          'default'           => '', 
-          'placeholder'       => 'RM 0.00'
-        ),
-        'flat_rate_above_1kg'  => array(
-          'type'              => 'text',
-          'description'       => __( 'Shipping rate (RM) for every additional KG', 'myparcelasia' ),
-          'desc_tip'          => false,
-          'default'           => '', 
-          'placeholder'       => 'RM 0.00'
-        ),
+        // 'cust_rate'           => array(
+        //     'title'             => __( '<font color="red">*</font>Display Shipping Rate', 'myparcelasia' ),
+				// 	  'id'              => 'cust_rate',
+        //     'type'              => 'select',
+        //     'description'       => __( "You may display different types of shipping rates on your checkout page:<br/><br/>
+        //                               1) Flat Rate: A fixed amount based on product weight.<br/>
+        //                               2) MPA Rate: The rate you're enjoying right now. Eg: RM6 from 1kg", 'myparcelasia' ),
+        //     'desc_tip'          => true,
+        //     'default'           => 'mpa_rate', 
+        //     'options'           => array( 'mpa_rate'=>'MPA Rate', 'flat_rate'=>'Flat Rate'),
+        //     'required'          => true
+        // ),
+        // 'flat_rate'           => array(
+        //   'title'             => __( 'Flat Rate (RM)', 'myparcelasia' ),
+        //   'type'              => 'text',
+        //   'description'       => __( 'Shipping rate (RM) for first 1KG', 'myparcelasia' ),
+        //   'desc_tip'          => false,
+        //   'default'           => '', 
+        //   'placeholder'       => 'RM 0.00'
+        // ),
+        // 'flat_rate_above_1kg'  => array(
+        //   'type'              => 'text',
+        //   'description'       => __( 'Shipping rate (RM) for every additional KG', 'myparcelasia' ),
+        //   'desc_tip'          => false,
+        //   'default'           => '', 
+        //   'placeholder'       => 'RM 0.00'
+        // ),
         'poslaju' => array(
             'title' => __( '<font color="red">*</font>Display Courier Option', 'myparcelasia' ),
             'label' => 'Poslaju',
@@ -266,21 +265,21 @@ if ( ! class_exists( 'WC_MPA_Shipping_Method' ) ) {
 
             foreach($aa as $bb) {
               if($rate->provider_code == $bb) {
-                if($this->get_option( "cust_rate" ) == 'flat_rate') { 
-                  if($this->settings['flat_rate'] != '' || $this->settings['flat_rate_above_1kg'] != '') {
-                    if($weight <= 1 ) {
-                      $shipping_rate['cost'] = $this->settings['flat_rate'];
-                    } elseif($weight > 1 ) {
-                      $shipping_rate['cost'] = $this->settings['flat_rate_above_1kg'];
+                // if($this->get_option( "cust_rate" ) == 'flat_rate') { 
+                //   if($this->settings['flat_rate'] != '' || $this->settings['flat_rate_above_1kg'] != '') {
+                //     if($weight <= 1 ) {
+                //       $shipping_rate['cost'] = $this->settings['flat_rate'];
+                //     } elseif($weight > 1 ) {
+                //       $shipping_rate['cost'] = $this->settings['flat_rate_above_1kg'];
 
-                      $fkg = $this->settings['flat_rate'];
-                      $mkg = $this->settings['flat_rate_above_1kg'];
-                      $mweight = $weight - 1 ;
-                      $mPrice= $mkg * $mweight;
-                      $shipping_rate['cost'] = $fkg + $mPrice;
-                    }
-                  }
-                }
+                //       $fkg = $this->settings['flat_rate'];
+                //       $mkg = $this->settings['flat_rate_above_1kg'];
+                //       $mweight = $weight - 1 ;
+                //       $mPrice= $mkg * $mweight;
+                //       $shipping_rate['cost'] = $fkg + $mPrice;
+                //     }
+                //   }
+                // }
                 // Register the rate
                 $this->add_rate( $shipping_rate );
               }

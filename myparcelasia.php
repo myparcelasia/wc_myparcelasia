@@ -55,7 +55,21 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                     </style>
                     ';
                 }
-
+                
+                add_action( 'admin_notices', array( $this, 'admin_notices' ) );
+                
+                add_action('admin_notices', function() {
+                    if (!empty($_REQUEST['insufficient'])) {
+                        $num_changed = (int) $_REQUEST['insufficient'];
+                        printf('<div id="message" class="updated notice is-dismissable"><p>' . __('Insufficient balance for %d order.', 'txtdomain') . '</p></div>', $num_changed);
+                        
+                    }else if (!empty($_REQUEST['can_generate'])) {
+                        $num_changed = (int) $_REQUEST['can_generate'];
+                        $link = $_REQUEST['link'];
+                        printf('<div id="message" class="updated notice is-dismissable"><p>' . __('%d order has been generated <a href="'.esc_url($link).'" target="_blank">here</a>.', 'txtdomain') . '</p></div>', $num_changed);
+                    }
+                });
+                
                 $this->add_component();
             }
 
@@ -131,6 +145,65 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                 return $actions;
             }
             
+            public function add_notice_already_generate( $location ) {
+                remove_filter( 'redirect_post_location', array( $this, 'add_notice_already_generate' ), 99 );
+                return add_query_arg( array( 'custom_msg' => 'already_generate' ), $location );
+            }
+            
+            public function add_notice_new_generate( $location ) {
+                remove_filter( 'redirect_post_location', array( $this, 'add_notice_new_generate' ), 99 );
+                return add_query_arg( array( 'custom_msg' => 'new_generate' ), $location );
+            }
+
+            public function add_notice_insufficient_balance( $location ) {
+                remove_filter( 'redirect_post_location', array( $this, 'add_notice_insufficient_balance' ), 99 );
+                return add_query_arg( array( 'custom_msg' => 'insufficient_balance' ), $location );
+            }
+            
+            public function add_notice_track_not_found( $location ) {
+                remove_filter( 'redirect_post_location', array( $this, 'add_notice_track_not_found' ), 99 );
+                return add_query_arg( array( 'custom_msg' => 'track_not_found' ), $location );
+            }
+            
+            public function add_notice_not_success( $location ) {
+                remove_filter( 'redirect_post_location', array( $this, 'add_notice_not_success' ), 99 );
+                return add_query_arg( array( 'custom_msg' => 'not_success' ), $location );
+            }
+
+            public function admin_notices() {
+                if ( $_GET['custom_msg'] == 'already_generate' ) {
+                    ?>
+                    <div class="updated">
+                    <p><?php esc_html_e( 'Connote already generate!', 'text-domain' ); ?></p>
+                    </div>
+                    <?php
+                } else if ( $_GET['custom_msg'] == 'new_generate' ) {
+                    ?>
+                    <div class="updated">
+                    <p><?php esc_html_e( 'Connote successfully generate!', 'text-domain' ); ?></p>
+                    </div>
+                    <?php
+                } else if ( $_GET['custom_msg'] == 'insufficient_balance' ) {
+                    ?>
+                    <div class="updated">
+                    <p><?php esc_html_e( 'Insufficient balance! Please topup.', 'text-domain' ); ?></p>
+                    </div>
+                    <?php
+                } else if ( $_GET['custom_msg'] == 'track_not_found' ) {
+                    ?>
+                    <div class="updated">
+                    <p><?php esc_html_e( 'Tracking number not found! Please try again', 'text-domain' ); ?></p>
+                    </div>
+                    <?php
+                } else if ( $_GET['custom_msg'] == 'not_success' ) {
+                    ?>
+                    <div class="updated">
+                    <p><?php esc_html_e( 'Something wrong happen. Please try again.', 'text-domain' ); ?></p>
+                    </div>
+                    <?php
+                }
+            }
+            
             public function generate_tracking_order( $order ) {
                 $WC_MPA_Config = new MPA_Shipping_Config();
                 global $woocommerce,$wpdb;
@@ -172,8 +245,9 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                 $postmeta_track_no = get_post_meta($order->id,'track_no', true);
                 
                 if($postmeta_track_no) {
-                    //if already create connote
-                    //should popup message connote already exist
+                    if($_POST['wc_order_action'] == 'generate_connote_order' ){
+                        add_filter( 'redirect_post_location', array( $this, 'add_notice_already_generate' ), 99 );
+                    }
                 } else {
                     $extract = array(
                         array(
@@ -228,24 +302,32 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                         )
                     );
                     
-                    if ( is_wp_error( $response ) ) {
-                        $error_message = $response->get_error_message();
-                        echo "Something went wrong: $error_message";
+                    $error_msg = json_decode($response['body'])->message[0]->message;
+                    if(strpos($error_msg, "Insufficient balance") !== false) {
+                        add_filter( 'redirect_post_location', array( $this, 'add_notice_insufficient_balance' ), 99 );
+                    } else if(strpos($error_msg, "already exist") !== false) {
+                        $exist_tracking = json_decode($response['body'])->message[0]->tracking_no;
+                        update_post_meta($order->id,'track_no', $exist_tracking);
+                        add_filter( 'redirect_post_location', array( $this, 'add_notice_new_generate' ), 99 );
                     } else {
-                        $result = json_decode($response['body'])->data;
-                        $print_track = $result->tracking_no;
-                        if($print_track){
+                        $result = json_decode($response['body']);
+                        $message = $result->message;
+                        if($message == "success") {
+                            $success = $result->data;
+        
+                            $print_track = $success->tracking_no;
+                            if($print_track){
                                 update_post_meta($order->id,'track_no',$print_track[0]->tracking_no);
+                                $order->add_order_note( __( 'Connote has been generated successfully.', 'woocommerce' ), false, true );
+                                add_filter( 'redirect_post_location', array( $this, 'add_notice_new_generate' ), 99 );
+                            } else {
+                                add_filter( 'redirect_post_location', array( $this, 'add_notice_track_not_found' ), 99 );
+                            }
+                        } else {
+                            add_filter( 'redirect_post_location', array( $this, 'add_notice_not_success' ), 99 );
                         }
                     }
                 }
-                // Note the event.
-                $order->add_order_note( __( 'Connote has been generated successfully.', 'woocommerce' ), false, true );
-            
-                do_action( 'woocommerce_after_resend_order_email', $order, 'new_order' );
-            
-                // Change the post saved message.
-                // add_filter( 'redirect_post_location', array( 'WC_Meta_Box_Order_Actions', 'set_email_sent_message' ) );
             }
             
             public function bulk_generate_tracking_order( $redirect_to, $action, $post_ids ) {
@@ -292,8 +374,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                         $list_track_no[] = $postmeta_track_no;
                     } else {
                         //if not yet create order
-                        $extract = array(
-                            array(
+                        $extract[] =  array(
                                 "integration_order_id"=> $order_data['order_key'],
                                 "send_method"=> $send_method,
                                 "size"=>"not box",
@@ -322,85 +403,71 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                                 "receiver_country_code"=> strtolower($order_data['billing']['country']),
                                 "content_type"=> "others",
                                 "send_date"=> $order_data['date_created']->date('Y-m-d H:i:s')
-                            )
                         );
-                        
-                        // function _custom_order_action_process( $extract ) {               
-                        //     if ( ! $extract ) {                
-                        //         add_filter( 'redirect_post_location', 'redirect_post_location', 99 );                    }
-                        //     if ( ! $extract ) {                
-                        //         add_filter( 'redirect_post_location', 'redirect_post_location', 99 );                
-                        //     }
-                        
-                        //     //here we go...
-                        
-                        // }
-                        // add_action( 'woocommerce_order_action_custom_order_action','_custom_order_action_process' );
-                        
-                        // function redirect_post_location( $location ) {
-                        //     remove_filter( 'redirect_post_location', __FUNCTION__, 99 ); // remove this filter so it will only work with your validations.
-                        //     $location = add_query_arg('message', 99, $location); // 99 is empty message, it will not show. Or if by any chance it has a message, you change to higher number.
-                        //     return $location;
-                        // }
-
-                        // dd('fail exit 212');
-                        
-                        $body = array(
-                            "api_key"=> self::$integration_id,
-                            "shipments"=> $extract
-                        );
-                        $url    = esc_url($WC_MPA_Config->sethost().'/checkout');
-                        $name   = esc_attr( __('Connote', 'woocommerce' ) );
-                        $class  = esc_attr( 'connote' );
-                        
-                        $response = wp_remote_post( $url, array(
-                            'method'      => 'POST',
-                            'timeout'     => 45,
-                            'redirection' => 5,
-                            'blocking'    => true,
-                            'headers'     => array(),
-                            'body'        => json_encode($body),
-                            'cookies'     => array()
-                            )
-                        );
-                        $error_msg = json_decode($response['body'])->message[0]->message;
-                        if(strpos($error_msg, "Insufficient balance") !== false) {
-                            dd($error_msg);
-                            return $redirect_to;
-                        } else if(strpos($error_msg, "already exist") !== false) {                            
-                            dd($error_msg);
-                            return $redirect_to;
-                        } else {
-                            $result = json_decode($response['body']);
-                            $message = $result->message;
-                            if($message == "success") {
-                                $success = $result->data;
-            
-                                $print_track = $success->tracking_no;
-                                if($print_track){
-                                    // foreach($print_track as $key=>$value) {
-                                    update_post_meta($post_id,'track_no',$print_track[0]->tracking_no);
-                                    $list_track_no[] = $print_track[0]->tracking_no;
-                                    // }
-                                    // return $success->awb_url;
-                                } else {
-                                    dd('print track not found -'.$result);
-                                    return $redirect_to;
-                                }
-                            } else {
-                                dd('message not success -'.$result);
-                                return $redirect_to;
-                            }
-
-                        }
-                        
                     }
                 }
-                $WC_MPA_Config = new MPA_Shipping_Config();
-                if($print_setting == 'thermal') {
-                    return $WC_MPA_Config->sethost().'/print_thermal/'.implode('-', $list_track_no); //later need to change to site_url
-                } else if($print_setting == 'a4_size') {
-                    return $WC_MPA_Config->sethost().'/print/'.implode('-', $list_track_no); //later need to change to site_url
+
+                if($extract) {
+                    $body = array(
+                        "api_key"=> self::$integration_id,
+                        "shipments"=> $extract
+                    );
+                    $url    = esc_url($WC_MPA_Config->sethost().'/checkout');
+                    $name   = esc_attr( __('Connote', 'woocommerce' ) );
+                    $class  = esc_attr( 'connote' );
+                    
+                    $response = wp_remote_post( $url, array(
+                        'method'      => 'POST',
+                        'timeout'     => 45,
+                        'redirection' => 5,
+                        'blocking'    => true,
+                        'headers'     => array(),
+                        'body'        => json_encode($body),
+                        'cookies'     => array()
+                        )
+                    );
+
+                    $error_msg = json_decode($response['body'])->message[0]->message;
+                    if(strpos($error_msg, "Insufficient balance") !== false) {
+                        $redirect_from= remove_query_arg(array('can_generate','link'), $redirect_to);
+                        $redirect_url = add_query_arg('insufficient', count($post_ids), $redirect_from);
+                    } else if(strpos($error_msg, "already exist") !== false) {
+                        $exist_tracking = json_decode($response['body'])->message[0]->tracking_no;
+                        update_post_meta($post_id,'track_no', $exist_tracking);
+                        $list_track_no[] = $exist_tracking;
+                    } else {
+                        $result = json_decode($response['body']);
+                        $message = $result->message;
+                        if($message == "success") {
+                            $success = $result->data;
+        
+                            $print_track = $success->tracking_no;
+                            if($print_track){
+                                update_post_meta($post_id,'track_no',$print_track[0]->tracking_no);
+                                $list_track_no[] = $print_track[0]->tracking_no;
+                            } else {
+                                return $redirect_to;
+                            }
+                        } else {
+                            return $redirect_to;
+                        }
+                    }
+                }
+
+                if(empty($list_track_no)){
+                    return $redirect_url;
+                } else {                    
+                    
+                    $WC_MPA_Config = new MPA_Shipping_Config();
+                    if($print_setting == 'thermal') {
+                        $link_to_print = $WC_MPA_Config->sethost().'/print_thermal/'.implode('-', $list_track_no); //later need to change to site_url
+                    } else if($print_setting == 'a4_size') {
+                        $link_to_print = $WC_MPA_Config->sethost().'/print/'.implode('-', $list_track_no); //later need to change to site_url
+                    }
+
+                    $redirect_from= remove_query_arg('insufficient', $redirect_to);
+                    $redirect_url = add_query_arg(array('can_generate'=>count($post_ids),'link'=>$link_to_print), $redirect_from);
+                    return $redirect_url;
                 }
             }
         }
