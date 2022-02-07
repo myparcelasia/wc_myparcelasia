@@ -253,7 +253,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                         array(
                         "integration_order_id"=> $order_data['order_key'],
                         "send_method"=> $send_method,
-                        "size"=>"not box",
+                        "size"=>"flyers_s",
                         "declared_weight"=> $weight>0 ? $weight : 0.1,
                         "provider_code"=> $provider_code,
                         "declared_send_at"=> $order_data['date_created']->date('Y-m-d H:i:s'),
@@ -377,7 +377,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                         $extract[] =  array(
                                 "integration_order_id"=> $order_data['order_key'],
                                 "send_method"=> $send_method,
-                                "size"=>"not box",
+                                "size"=>"flyers_s",
                                 "declared_weight"=> $weight>0 ? $weight : 0.1,
                                 "provider_code"=> $provider_code,
                                 "declared_send_at"=> $order_data['date_created']->date('Y-m-d H:i:s'),
