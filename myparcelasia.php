@@ -24,7 +24,9 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
         require __DIR__.'/vendor/autoload.php';
         include 'include/mpa_config.php';
         $dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
-        $dotenv->load();
+        if (getenv('WP_ENV') == 'development') {
+            $dotenv->load();
+        }
 
         class WC_Integration_MPA {
             private static $integration_id = '';
