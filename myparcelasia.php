@@ -67,10 +67,14 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                         $num_changed = (int) $_REQUEST['insufficient'];
                         printf('<div id="message" class="updated notice is-dismissable"><p>' . __('Insufficient balance for %d order.', 'txtdomain') . '</p></div>', $num_changed);
                         
-                    }else if (!empty($_REQUEST['can_generate'])) {
+                    } else if (!empty($_REQUEST['can_generate'])) {
                         $num_changed = (int) $_REQUEST['can_generate'];
                         $link = $_REQUEST['link'];
                         printf('<div id="message" class="updated notice is-dismissable"><p>' . __('%d order has been generated <a href="'.esc_url($link).'" target="_blank">here</a>.', 'txtdomain') . '</p></div>', $num_changed);
+                    } else if (!empty($_REQUEST['general_msg'])) {
+                        $num_changed = (int) $_REQUEST['general_msg'];
+                        $link = $_REQUEST['general_msg'];
+                        printf('<div id="message" class="updated notice is-dismissable"><p>' . __($link, 'txtdomain') . '</p></div>', $num_changed);
                     }
                 });
                 
@@ -440,6 +444,11 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                         update_post_meta($post_id,'track_no', $exist_tracking);
                         $list_track_no[] = $exist_tracking;
                     } else {
+                        if($error_msg) {
+                            $redirect_url = add_query_arg(array('general_msg'=>$error_msg), $redirect_to);
+                            return $redirect_url;
+                        }
+                        
                         $result = json_decode($response['body']);
                         $message = $result->message;
                         if($message == "success") {
@@ -456,6 +465,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                             return $redirect_to;
                         }
                     }
+
                 }
 
                 if(empty($list_track_no)){
