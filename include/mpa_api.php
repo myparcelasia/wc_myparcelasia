@@ -47,8 +47,7 @@ if ( ! class_exists( 'MPA_Shipping_API' ) ) {
             }
 
             $WC_MPA_Config = new MPA_Shipping_Config();
-            // $url = $WC_MPA_Config->sethost().'/check_price';
-            $url = 'localhost:8000/Apiv3/check_price';
+            $url = $WC_MPA_Config->sethost().'/check_price';
 
             $WC_MPA_Shipping_Method = new WC_MPA_Shipping_Method();
 

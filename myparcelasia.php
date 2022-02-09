@@ -6,6 +6,8 @@ Description: MyParcel Asia plugin to enable courier and shipping rate to display
 Version: 1.0.0
 Author: MyParcel Asia
 Author URI: https://app.myparcelasia.com
+Wordpress requires at least: 5.0.0
+Wordpress tested up to: 5.9.0
 WC requires at least: 5.0.0
 WC tested up to: 6.1.0
 */
