@@ -65,16 +65,16 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                 add_action('admin_notices', function() {
                     if (!empty($_REQUEST['insufficient'])) {
                         $num_changed = (int) $_REQUEST['insufficient'];
-                        printf('<div id="message" class="updated notice is-dismissable"><p>' . __('Insufficient balance for %d order.', 'txtdomain') . '</p></div>', $num_changed);
+                        printf('<div id="message" class="notice notice-error is-dismissible"><p>' . __('Insufficient balance for %d order.', 'txtdomain') . '</p></div>', $num_changed);
                         
                     } else if (!empty($_REQUEST['can_generate'])) {
                         $num_changed = (int) $_REQUEST['can_generate'];
                         $link = $_REQUEST['link'];
-                        printf('<div id="message" class="updated notice is-dismissable"><p>' . __('%d order has been generated <a href="'.esc_url($link).'" target="_blank">here</a>.', 'txtdomain') . '</p></div>', $num_changed);
+                        printf('<div id="message" class="notice notice-success is-dismissible"><p>' . __('%d order has been generated <a href="'.esc_url($link).'" target="_blank">here</a>.', 'txtdomain') . '</p></div>', $num_changed);
                     } else if (!empty($_REQUEST['general_msg'])) {
                         $num_changed = (int) $_REQUEST['general_msg'];
                         $link = $_REQUEST['general_msg'];
-                        printf('<div id="message" class="updated notice is-dismissable"><p>' . __($link, 'txtdomain') . '</p></div>', $num_changed);
+                        printf('<div id="message" class="notice notice-error is-dismissible"><p>' . __($link, 'txtdomain') . '</p></div>', $num_changed);
                     }
                 });
                 
@@ -181,31 +181,31 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
             public function admin_notices() {
                 if ( $_GET['custom_msg'] == 'already_generate' ) {
                     ?>
-                    <div class="updated">
+                    <div class="notice notice-info is-dismissible">
                     <p><?php esc_html_e( 'Connote already generate!', 'text-domain' ); ?></p>
                     </div>
                     <?php
                 } else if ( $_GET['custom_msg'] == 'new_generate' ) {
                     ?>
-                    <div class="updated">
+                    <div class="notice notice-success is-dismissible">
                     <p><?php esc_html_e( 'Connote successfully generate!', 'text-domain' ); ?></p>
                     </div>
                     <?php
                 } else if ( $_GET['custom_msg'] == 'insufficient_balance' ) {
                     ?>
-                    <div class="updated">
+                    <div class="notice notice-error is-dismissible">
                     <p><?php esc_html_e( 'Insufficient balance! Please topup.', 'text-domain' ); ?></p>
                     </div>
                     <?php
                 } else if ( $_GET['custom_msg'] == 'track_not_found' ) {
                     ?>
-                    <div class="updated">
+                    <div class="notice notice-error is-dismissible">
                     <p><?php esc_html_e( 'Tracking number not found! Please try again', 'text-domain' ); ?></p>
                     </div>
                     <?php
                 } else if ( $_GET['custom_msg'] == 'not_success' ) {
                     ?>
-                    <div class="updated">
+                    <div class="notice notice-error is-dismissible">
                     <p><?php esc_html_e( 'Something wrong happen. Please try again.', 'text-domain' ); ?></p>
                     </div>
                     <?php
