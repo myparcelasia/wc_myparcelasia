@@ -18,9 +18,6 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Check if WooCommerce is active
  */
 if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', get_option( 'active_plugins' ) ) ) ) {
-
-    
-
     if ( ! class_exists( 'WC_Integration_MPA' ) ) :
 
         require __DIR__.'/vendor/autoload.php';
@@ -225,7 +222,6 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 
                 $data = wc_get_order($order);
                 $order_data = $data->get_data();
-                $user_data = $data->get_user();
                 $product_data = $data->get_items();
                 $sender_details = WC()->countries;
 
@@ -264,7 +260,6 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                         "size"=>"flyers_s",
                         "declared_weight"=> $weight>0 ? $weight : 0.1,
                         "provider_code"=> $provider_code,
-                        "declared_send_at"=> $order_data['date_created']->date('Y-m-d H:i:s'),
                         "type"=>"parcel",
                         "sender_company_name"=>get_bloginfo( 'name' ),
                         "sender_name"=> get_bloginfo( 'name' ),
@@ -286,7 +281,8 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                         "receiver_postcode"=> strtolower($order_data['billing']['postcode']),
                         "receiver_country_code"=> strtolower($order_data['billing']['country']),
                         "content_type"=> "others",
-                        "send_date"=> $order_data['date_created']->date('Y-m-d H:i:s')
+                        "declared_send_at"=> date('Y-m-d'),
+                        "send_date"=> date('Y-m-d')
                         )
                     );
 
@@ -351,7 +347,6 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                 foreach ( $post_ids as $key=>$post_id ) {
                     $data = wc_get_order( $post_id );
                     $order_data = $data->get_data();
-                    $user_data = $data->get_user();
                     $product_data = $data->get_items();
                     $sender_details = WC()->countries;
 
@@ -388,7 +383,6 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                                 "size"=>"flyers_s",
                                 "declared_weight"=> $weight>0 ? $weight : 0.1,
                                 "provider_code"=> $provider_code,
-                                "declared_send_at"=> $order_data['date_created']->date('Y-m-d H:i:s'),
                                 "type"=>"parcel",
                                 "sender_company_name"=>get_bloginfo( 'name' ),
                                 "sender_name"=> get_bloginfo( 'name' ),
@@ -410,7 +404,8 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                                 "receiver_postcode"=> strtolower($order_data['billing']['postcode']),
                                 "receiver_country_code"=> strtolower($order_data['billing']['country']),
                                 "content_type"=> "others",
-                                "send_date"=> $order_data['date_created']->date('Y-m-d H:i:s')
+                                "declared_send_at"=> date('Y-m-d'),
+                                "send_date"=> date('Y-m-d')
                         );
                     }
                 }
