@@ -225,6 +225,13 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                 $product_data = $data->get_items();
                 $sender_details = WC()->countries;
 
+                date_default_timezone_set("Asia/Kuala_Lumpur");
+                if(date("H:i")>="11:45") {
+                    $pickup_date = date("Y-m-d", strtotime('tomorrow'));
+                } else {
+                    $pickup_date = date("Y-m-d");
+                }                
+
                 foreach( $data->get_items( 'shipping' ) as $item_id => $item ){
                     $weight = (int) filter_var($item['name'], FILTER_SANITIZE_NUMBER_INT);
 
@@ -281,8 +288,8 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                         "receiver_postcode"=> strtolower($order_data['billing']['postcode']),
                         "receiver_country_code"=> strtolower($order_data['billing']['country']),
                         "content_type"=> "others",
-                        "declared_send_at"=> date('Y-m-d'),
-                        "send_date"=> date('Y-m-d')
+                        "declared_send_at"=> $pickup_date,
+                        "send_date"=> $pickup_date
                         )
                     );
 
@@ -344,6 +351,13 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                 $phone_number = $WC_MPA_Shipping_Method->settings['phone_number'];
                 $send_method = $WC_MPA_Shipping_Method->settings['send_method'];
 
+                date_default_timezone_set("Asia/Kuala_Lumpur");
+                if(date("H:i")>="11:45") {
+                    $pickup_date = date("Y-m-d", strtotime('tomorrow'));
+                } else {
+                    $pickup_date = date("Y-m-d");
+                }
+
                 foreach ( $post_ids as $key=>$post_id ) {
                     $data = wc_get_order( $post_id );
                     $order_data = $data->get_data();
@@ -404,8 +418,8 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                                 "receiver_postcode"=> strtolower($order_data['billing']['postcode']),
                                 "receiver_country_code"=> strtolower($order_data['billing']['country']),
                                 "content_type"=> "others",
-                                "declared_send_at"=> date('Y-m-d'),
-                                "send_date"=> date('Y-m-d')
+                                "declared_send_at"=> $pickup_date,
+                                "send_date"=> $pickup_date
                         );
                     }
                 }
