@@ -67,7 +67,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                     } else if (!empty($_REQUEST['can_generate'])) {
                         $num_changed = (int) $_REQUEST['can_generate'];
                         $link = $_REQUEST['link'];
-                        printf('<div id="message" class="notice notice-success is-dismissible"><p>' . __('%d order has been generated <a href="'.esc_url($link).'" target="_blank">here</a>.', 'txtdomain') . '</p></div>', $num_changed);
+                        printf('<div id="message" class="notice notice-success is-dismissible"><p>' . __('Download %d connote PDF <a href="'.esc_url($link).'" target="_blank">here</a>.', 'txtdomain') . '</p></div>', $num_changed);
                     } else if (!empty($_REQUEST['general_msg'])) {
                         $num_changed = (int) $_REQUEST['general_msg'];
                         $link = $_REQUEST['general_msg'];
@@ -146,7 +146,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
             }
             
             public function add_generate_connote_order_action( $actions ) {
-                $actions['generate_connote_order'] = __( 'Generate Connote Order', 'woocommerce' );
+                $actions['generate_connote_order'] = __( 'Download Connote PDF', 'woocommerce' );
                 return $actions;
             }
             
@@ -260,13 +260,14 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                         add_filter( 'redirect_post_location', array( $this, 'add_notice_already_generate' ), 99 );
                     }
                 } else {
+                    $providers=array("poslaju","nationwide","jnt","ninjavan");
                     $extract = array(
                         array(
                         "integration_order_id"=> $order_data['order_key'],
                         "send_method"=> $send_method,
                         "size"=>"flyers_s",
                         "declared_weight"=> $weight>0 ? $weight : 0.1,
-                        "provider_code"=> $provider_code,
+                        "provider_code"=> $provider_code ?? $providers[array_rand($providers)],
                         "type"=>"parcel",
                         "sender_company_name"=>get_bloginfo( 'name' ),
                         "sender_name"=> get_bloginfo( 'name' ),
@@ -326,9 +327,9 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                         if($message == "success") {
                             $success = $result->data;
         
-                            $print_track = $success->tracking_no;
-                            if($print_track){
-                                update_post_meta($order->id,'track_no',$print_track[0]->tracking_no);
+                            $print_tracks = $success->tracking_no;
+                            if($print_tracks){
+                                update_post_meta($order->id,'track_no',$print_tracks[0]->tracking_no);
                                 $order->add_order_note( __( 'Connote has been generated successfully.', 'woocommerce' ), false, true );
                                 add_filter( 'redirect_post_location', array( $this, 'add_notice_new_generate' ), 99 );
                             } else {
@@ -391,12 +392,13 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                         $list_track_no[] = $postmeta_track_no;
                     } else {
                         //if not yet create order
+                        $providers=array("poslaju","jnt","ninjavan");
                         $extract[] =  array(
                                 "integration_order_id"=> $order_data['order_key'],
                                 "send_method"=> $send_method,
                                 "size"=>"flyers_s",
                                 "declared_weight"=> $weight>0 ? $weight : 0.1,
-                                "provider_code"=> $provider_code,
+                                "provider_code"=> $provider_code ?? $providers[array_rand($providers)],
                                 "type"=>"parcel",
                                 "sender_company_name"=>get_bloginfo( 'name' ),
                                 "sender_name"=> get_bloginfo( 'name' ),
@@ -435,7 +437,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                     
                     $response = wp_remote_post( $url, array(
                         'method'      => 'POST',
-                        'timeout'     => 45,
+                        'timeout'     => 1000,
                         'redirection' => 5,
                         'blocking'    => true,
                         'headers'     => array(),
@@ -443,15 +445,17 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                         'cookies'     => array()
                         )
                     );
-
                     $error_msg = json_decode($response['body'])->message[0]->message;
                     if(strpos($error_msg, "Insufficient balance") !== false) {
                         $redirect_from= remove_query_arg(array('can_generate','link'), $redirect_to);
                         $redirect_url = add_query_arg('insufficient', count($post_ids), $redirect_from);
                     } else if(strpos($error_msg, "already exist") !== false) {
-                        $exist_tracking = json_decode($response['body'])->message[0]->tracking_no;
-                        update_post_meta($post_id,'track_no', $exist_tracking);
-                        $list_track_no[] = $exist_tracking;
+                        $exist_trackings = json_decode($response['body'])->message;
+                        foreach( $exist_trackings as $key=>$exist_track ){
+                            //recheck issue bulk, button print appear only at the last order
+                            update_post_meta($post_id,'track_no', $exist_trackings[$key]->tracking_no);
+                            $list_track_no[] = $exist_trackings[$key]->tracking_no;
+                        }
                     } else {
                         if($error_msg) {
                             $redirect_url = add_query_arg(array('general_msg'=>$error_msg), $redirect_to);
@@ -463,10 +467,12 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                         if($message == "success") {
                             $success = $result->data;
         
-                            $print_track = $success->tracking_no;
-                            if($print_track){
-                                update_post_meta($post_id,'track_no',$print_track[0]->tracking_no);
-                                $list_track_no[] = $print_track[0]->tracking_no;
+                            $print_tracks = $success->tracking_no;
+                            if($print_tracks){
+                                foreach( $print_tracks as $key=>$print_track ){
+                                    update_post_meta($post_id,'track_no',$print_tracks[$key]->tracking_no);
+                                    $list_track_no[] = $print_tracks[$key]->tracking_no;
+                                }
                             } else {
                                 return $redirect_to;
                             }
