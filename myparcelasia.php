@@ -72,6 +72,9 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                         $num_changed = (int) $_REQUEST['general_msg'];
                         $link = $_REQUEST['general_msg'];
                         printf('<div id="message" class="notice notice-error is-dismissible"><p>' . __($link, 'txtdomain') . '</p></div>', $num_changed);
+                    } else if (!empty($_REQUEST['no_track_list'])) {
+                        $num_changed = (int) $_REQUEST['no_track_list'];
+                        printf('<div id="message" class="notice notice-error is-dismissible"><p>' . __('No tracking number for %d order.', 'txtdomain') . '</p></div>', $num_changed);
                     }
                 });
                 
@@ -341,17 +344,8 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                     }
                 }
             }
-            
-            public function bulk_generate_tracking_order( $redirect_to, $action, $post_ids ) {
-                $WC_MPA_Config = new MPA_Shipping_Config();
-                global $woocommerce,$wpdb;
-                include 'include/mpa_shipping.php';
-                $WC_MPA_Shipping_Method = new WC_MPA_Shipping_Method();
-                self::$integration_id = $WC_MPA_Shipping_Method->settings['api_key'];
-                $print_setting = $WC_MPA_Shipping_Method->settings['print_type'];
-                $phone_number = $WC_MPA_Shipping_Method->settings['phone_number'];
-                $send_method = $WC_MPA_Shipping_Method->settings['send_method'];
 
+            public function check_post_id($post_ids,$phone_number,$send_method) {                
                 date_default_timezone_set("Asia/Kuala_Lumpur");
                 if(date("H:i")>="11:45") {
                     $pickup_date = date("Y-m-d", strtotime('tomorrow'));
@@ -360,37 +354,37 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                 }
 
                 foreach ( $post_ids as $key=>$post_id ) {
-                    $data = wc_get_order( $post_id );
-                    $order_data = $data->get_data();
-                    $product_data = $data->get_items();
-                    $sender_details = WC()->countries;
-
-                    foreach( $data->get_items( 'shipping' ) as $item_id => $item ){
-                        $weight = (int) filter_var($item['name'], FILTER_SANITIZE_NUMBER_INT);
-                        switch (true) {
-                            case str_contains($item['name'], 'POSLaju'):
-                                $provider_code = 'poslaju';
-                                break;
-                            case str_contains($item['name'], 'Nationwide'):
-                                $provider_code = 'nationwide';
-                                break;
-                            case str_contains($item['name'], 'JnT'):
-                                $provider_code = 'jnt';
-                                break;
-                            case str_contains($item['name'], 'DHL'):
-                                $provider_code = 'dhle';
-                                break;
-                            case str_contains($item['name'], 'Ninjavan'):
-                                $provider_code = 'ninjavan';
-                                break;
-                            }
-                    }
+                    //START: check condition tracking no exist
                     $postmeta_track_no = get_post_meta($post_id,'track_no', true);
-
                     if($postmeta_track_no) {
-                        //if already create connote
                         $list_track_no[] = $postmeta_track_no;
                     } else {
+                        //for new order and order that missing track
+                        $data = wc_get_order( $post_id );
+                        $order_data = $data->get_data();
+                        $product_data = $data->get_items();
+                        $sender_details = WC()->countries;
+    
+                        foreach( $data->get_items( 'shipping' ) as $item_id => $item ){
+                            $weight = (int) filter_var($item['name'], FILTER_SANITIZE_NUMBER_INT);
+                            switch (true) {
+                                case str_contains($item['name'], 'POSLaju'):
+                                    $provider_code = 'poslaju';
+                                    break;
+                                case str_contains($item['name'], 'Nationwide'):
+                                    $provider_code = 'nationwide';
+                                    break;
+                                case str_contains($item['name'], 'JnT'):
+                                    $provider_code = 'jnt';
+                                    break;
+                                case str_contains($item['name'], 'DHL'):
+                                    $provider_code = 'dhle';
+                                    break;
+                                case str_contains($item['name'], 'Ninjavan'):
+                                    $provider_code = 'ninjavan';
+                                    break;
+                                }
+                        }
                         //if not yet create order
                         $providers=array("poslaju","jnt","ninjavan");
                         $extract[] =  array(
@@ -424,8 +418,25 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                                 "send_date"=> $pickup_date
                         );
                     }
+                    //END: check condition tracking no exist
                 }
 
+                return array($list_track_no,$extract);
+            }
+            
+            public function bulk_generate_tracking_order( $redirect_to, $action, $post_ids ) {
+                $WC_MPA_Config = new MPA_Shipping_Config();
+                global $woocommerce,$wpdb;
+                include 'include/mpa_shipping.php';
+                $WC_MPA_Shipping_Method = new WC_MPA_Shipping_Method();
+                self::$integration_id = $WC_MPA_Shipping_Method->settings['api_key'];
+                $print_setting = $WC_MPA_Shipping_Method->settings['print_type'];
+                $phone_number = $WC_MPA_Shipping_Method->settings['phone_number'];
+                $send_method = $WC_MPA_Shipping_Method->settings['send_method'];
+
+                $check_post_id = $this->check_post_id($post_ids,$phone_number,$send_method);
+                $list_track_no = $check_post_id[0];
+                $extract = $check_post_id[1];
                 if($extract) {
                     $body = array(
                         "api_key"=> self::$integration_id,
@@ -445,45 +456,47 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                         'cookies'     => array()
                         )
                     );
-                    $error_msg = json_decode($response['body'])->message[0]->message;
-                    if(strpos($error_msg, "Insufficient balance") !== false) {
-                        $redirect_from= remove_query_arg(array('can_generate','link'), $redirect_to);
-                        $redirect_url = add_query_arg('insufficient', count($post_ids), $redirect_from);
-                    } else if(strpos($error_msg, "already exist") !== false) {
-                        $exist_trackings = json_decode($response['body'])->message;
-                        foreach( $exist_trackings as $key=>$exist_track ){
-                            //recheck issue bulk, button print appear only at the last order
-                            update_post_meta($post_id,'track_no', $exist_trackings[$key]->tracking_no);
-                            $list_track_no[] = $exist_trackings[$key]->tracking_no;
+                    
+                    $result = json_decode($response['body']);
+                    $message = $result->message;
+                    if($message == "success") { //for new cons only
+                        $success = $result->data;    
+                        $print_tracks = $success->tracking_no;
+                        if($print_tracks){
+                            $count_track = count($list_track_no);
+                            foreach( $print_tracks as $key=>$print_track ){
+                                update_post_meta($post_ids[$key+$count_track],'track_no',$print_track->tracking_no);
+                                $list_track_no[] = $print_track->tracking_no;
+                            }
                         }
-                    } else {
-                        if($error_msg) {
-                            $redirect_url = add_query_arg(array('general_msg'=>$error_msg), $redirect_to);
-                            return $redirect_url;
-                        }
-                        
-                        $result = json_decode($response['body']);
-                        $message = $result->message;
-                        if($message == "success") {
-                            $success = $result->data;
-        
-                            $print_tracks = $success->tracking_no;
-                            if($print_tracks){
-                                foreach( $print_tracks as $key=>$print_track ){
-                                    update_post_meta($post_id,'track_no',$print_tracks[$key]->tracking_no);
-                                    $list_track_no[] = $print_tracks[$key]->tracking_no;
-                                }
-                            } else {
-                                return $redirect_to;
+                        //cont to print
+                    } else { //not success message
+                        dd('not success');
+                        $error_msg = json_decode($response['body'])->message[0]->message;
+                        if(strpos($error_msg, "Insufficient balance") !== false) {
+                            $redirect_from= remove_query_arg(array('can_generate','link'), $redirect_to);
+                            $redirect_url = add_query_arg('insufficient', count($post_ids), $redirect_from);
+                        } else if(strpos($error_msg, "already exist") !== false) {
+                            //if old and new cons together - only exist order return message - need workaround
+                            $exist_trackings = json_decode($response['body'])->message;
+                            
+                            foreach( $exist_trackings as $key=>$exist_track ){
+                                update_post_meta($post_ids[$key],'track_no', $exist_track->tracking_no);
+                                $list_track_no[] = $exist_track->tracking_no;
                             }
                         } else {
-                            return $redirect_to;
+                            if($error_msg) {
+                                $redirect_url = add_query_arg(array('general_msg'=>$error_msg), $redirect_to);
+                                return $redirect_url;
+                            }                            
                         }
                     }
-
                 }
+                
+                unset($extract);
 
                 if(empty($list_track_no)){
+                    $redirect_url = add_query_arg('no_track_list', count($post_ids), $redirect_from);                    
                     return $redirect_url;
                 } else {                    
                     
