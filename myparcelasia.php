@@ -267,6 +267,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                     $extract = array(
                         array(
                         "integration_order_id"=> $order_data['order_key'],
+                        "integration_vendor"=> 'wc_plugin_single',
                         "send_method"=> $send_method,
                         "size"=>"flyers_s",
                         "declared_weight"=> $weight>0 ? $weight : 0.1,
@@ -389,6 +390,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                         $providers=array("poslaju","jnt","ninjavan");
                         $extract[] =  array(
                                 "integration_order_id"=> $order_data['order_key'],
+                                "integration_vendor"=> 'wc_plugin_bulk',
                                 "send_method"=> $send_method,
                                 "size"=>"flyers_s",
                                 "declared_weight"=> $weight>0 ? $weight : 0.1,
@@ -456,7 +458,6 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                         'cookies'     => array()
                         )
                     );
-                    
                     $result = json_decode($response['body']);
                     $message = $result->message;
                     if($message == "success") { //for new cons only
@@ -471,24 +472,25 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                         }
                         //cont to print
                     } else { //not success message
-                        dd('not success');
                         $error_msg = json_decode($response['body'])->message[0]->message;
                         if(strpos($error_msg, "Insufficient balance") !== false) {
                             $redirect_from= remove_query_arg(array('can_generate','link'), $redirect_to);
                             $redirect_url = add_query_arg('insufficient', count($post_ids), $redirect_from);
-                        } else if(strpos($error_msg, "already exist") !== false) {
-                            //if old and new cons together - only exist order return message - need workaround
-                            $exist_trackings = json_decode($response['body'])->message;
-                            
-                            foreach( $exist_trackings as $key=>$exist_track ){
-                                update_post_meta($post_ids[$key],'track_no', $exist_track->tracking_no);
-                                $list_track_no[] = $exist_track->tracking_no;
+                            return $redirect_url; //exit if insufficient
+                        }
+
+                        $bulk_errors = json_decode($response['body'])->message;
+                        foreach($bulk_errors as $key=>$bulk_error){
+                            if(strpos($bulk_error, "already exist") !== false) {
+                                update_post_meta($post_ids[$key],'track_no', $bulk_error->tracking_no);
+                                $list_track_no[] = $bulk_error->tracking_no;
+                                //if old and new cons together - only exist order return message - need workaround
+                            } else {
+                                if($error_msg) {
+                                    $redirect_url = add_query_arg(array('general_msg'=>$error_msg), $redirect_to);
+                                    return $redirect_url;
+                                }
                             }
-                        } else {
-                            if($error_msg) {
-                                $redirect_url = add_query_arg(array('general_msg'=>$error_msg), $redirect_to);
-                                return $redirect_url;
-                            }                            
                         }
                     }
                 }
@@ -498,8 +500,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                 if(empty($list_track_no)){
                     $redirect_url = add_query_arg('no_track_list', count($post_ids), $redirect_from);                    
                     return $redirect_url;
-                } else {                    
-                    
+                } else {
                     $WC_MPA_Config = new MPA_Shipping_Config();
                     if($print_setting == 'thermal') {
                         $link_to_print = $WC_MPA_Config->sethost().'/print_thermal/'.implode('-', $list_track_no); //later need to change to site_url
