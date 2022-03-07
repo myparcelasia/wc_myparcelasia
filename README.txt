@@ -1,5 +1,5 @@
 === MyParcel Asia ===
-Contributors: jtexpress
+Contributors: myparcelasia
 Donate link: https://www.myparcelasia.com/
 Tags: myparcelasia
 Requires at least: 5.1
