@@ -29,36 +29,27 @@ if ( ! class_exists( 'MPA_Shipping_API' ) ) {
         {
           $WC_Country = new WC_Countries();
           if($WC_Country->get_base_country() == 'MY'){
- 
-
             if($weight == 0 || $weight ==''){$weight=0.1;}
 
             $i = 0;
             $length = "";
             $width = "";
             $height = "";
-            foreach ($items as $item) {    
-                 if (is_numeric($item[$i]['width']) && is_numeric($item[$i]['length']) && is_numeric($item[$i]['height'])) {
-                    $length += $items[$i]['length'] ;
-                    $width += $items[$i]['width'];
-                    $height += $items[$i]['height'];
-                 }
-                 $i++;
-            }
-
+            
             $WC_MPA_Config = new MPA_Shipping_Config();
             $url = $WC_MPA_Config->sethost().'/check_price';
-
             $WC_MPA_Shipping_Method = new WC_MPA_Shipping_Method();
 
-            if($WC_MPA_Shipping_Method->settings['cust_rate'] == 'normal_rate') {
-                self::$integration_id = ''; 
+            foreach ($items as $item) {
+                if (is_numeric($item['width']) && is_numeric($item['length']) && is_numeric($item['height'])) {
+                    $length += $items[$i]['length'];
+                    $width += $items[$i]['width'];
+                    $height += $items[$i]['height'];
+                }else{
+                    $_POST['effective_weight'] = $_POST['declared_weight'];
+                }                 
+                $i++;
             }
-
-            //prevent user select fix Rate but didnt put postcode no result
-            if($WC_MPA_Shipping_Method->settings['cust_rate']  == 'fix_rate' && self::$sender_postcode == '')
-            { self::$sender_postcode = '50490';}
-
                 
             $f = '{
                     "api_key": "'.self::$integration_id.'",

@@ -212,13 +212,12 @@ if ( ! class_exists( 'WC_MPA_Shipping_Method' ) ) {
         if ($product_status == "variation" ) {
           $product = $product_factory->get_product( $item["variation_id"] );
         }
-                
         for ( $i=0; $i < $item["quantity"]; $i++ ) {
           $items[] = array(
             "weight" => $this->weightToKg( $product->get_weight() ),
-            "height" => $this->defaultDimension( $this->dimensionToCm( $product->get_height() ) ),
-            "width" => $this->defaultDimension( $this->dimensionToCm( $product->get_width() ) ),
-            "length" => $this->defaultDimension( $this->dimensionToCm( $product->get_length() ) )
+            "height" => $this->dimensionToCm( $product->get_height() ),
+            "width" => $this->dimensionToCm( $product->get_width() ),
+            "length" => $this->dimensionToCm( $product->get_length() )
           );
         }
       }
@@ -232,16 +231,21 @@ if ( ! class_exists( 'WC_MPA_Shipping_Method' ) ) {
         MPA_Shipping_API::init();
         $i=0;
         $weight=0;
-        foreach ($items as $item) {
-          $weight += is_numeric($items[$i]['weight'])? $items[$i]['weight'] : 0;
-          $i++;  
-        }
 
+        foreach ($items as $item) {      
+          if (is_numeric($items[$i]['width']) && is_numeric($items[$i]['length']) && is_numeric($items[$i]['height'])) {
+            $vol = $items[$i]['height'] * $items[$i]['width'] * $items[$i]['length'];
+            $volumetric = number_format($vol / 5000, 2, '.', '');
+            $weight += $volumetric;
+          } else {
+            $weight += $items[$i]['weight'];
+          }
+          $i++;
+        }
         $WC_Country = new WC_Countries();
           
+        // $weight=ceil($weight); //this feature can be enable if user want to round up the number
         $rates = MPA_Shipping_API::getShippingRate($destination, $items,$weight);
-        $weight=ceil($weight);
-
         $groupped = array();
         foreach ($rates as $rate) {
           $groupped[$rate->provider_code][] = $rate;
@@ -256,7 +260,6 @@ if ( ! class_exists( 'WC_MPA_Shipping_Method' ) ) {
               'label'   =>  $courier_service_label." (".$weight."kg)",
               'cost'    =>  $rate->exclusive_price
             );
-                            
             $aa = $this->get_option("poslaju") == 'yes'? ['poslaju']: '';
             $aa[] .= $this->get_option("nationwide") == 'yes'? 'nationwide': '';
             $aa[] .= $this->get_option("dhle") == 'yes'? 'dhle': '';
@@ -265,21 +268,6 @@ if ( ! class_exists( 'WC_MPA_Shipping_Method' ) ) {
 
             foreach($aa as $bb) {
               if($rate->provider_code == $bb) {
-                // if($this->get_option( "cust_rate" ) == 'flat_rate') { 
-                //   if($this->settings['flat_rate'] != '' || $this->settings['flat_rate_above_1kg'] != '') {
-                //     if($weight <= 1 ) {
-                //       $shipping_rate['cost'] = $this->settings['flat_rate'];
-                //     } elseif($weight > 1 ) {
-                //       $shipping_rate['cost'] = $this->settings['flat_rate_above_1kg'];
-
-                //       $fkg = $this->settings['flat_rate'];
-                //       $mkg = $this->settings['flat_rate_above_1kg'];
-                //       $mweight = $weight - 1 ;
-                //       $mPrice= $mkg * $mweight;
-                //       $shipping_rate['cost'] = $fkg + $mPrice;
-                //     }
-                //   }
-                // }
                 // Register the rate
                 $this->add_rate( $shipping_rate );
               }
@@ -350,19 +338,6 @@ if ( ! class_exists( 'WC_MPA_Shipping_Method' ) ) {
 
             // already kg
             return $weight;
-    }
-
-    /**
-    * This function return default value for length
-    *
-    * @access protected
-    * @param number
-    * @return number
-    */
-    protected function defaultDimension( $length ) {
-          // default dimension to 1 if it is 0
-        // $length = double($length);
-        return $length > 0 ? $length : 0.1;
     }
   }
 }
