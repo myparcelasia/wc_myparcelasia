@@ -231,11 +231,14 @@ if ( ! class_exists( 'WC_MPA_Shipping_Method' ) ) {
         MPA_Shipping_API::init();
         $i=0;
         $weight=0;
+        $volumetric=0;
 
         foreach ($items as $item) {      
           if (is_numeric($items[$i]['width']) && is_numeric($items[$i]['length']) && is_numeric($items[$i]['height'])) {
             $vol = $items[$i]['height'] * $items[$i]['width'] * $items[$i]['length'];
             $volumetric = number_format($vol / 5000, 2, '.', '');
+          }
+          if($volumetric > $items[$i]['weight']) {
             $weight += $volumetric;
           } else {
             $weight += $items[$i]['weight'];
