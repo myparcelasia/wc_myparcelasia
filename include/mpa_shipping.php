@@ -63,18 +63,19 @@ if ( ! class_exists( 'WC_MPA_Shipping_Method' ) ) {
       $f = '{
           "api_key": "'.$this->get_option("api_key").'"
       }';
+      
+      $response = wp_remote_post( $url, array(
+        'method'      => 'POST',
+        'timeout'     => 45,
+        'redirection' => 5,
+        'blocking'    => true,
+        'headers'     => array(),
+        'body'        => $f,
+        'cookies'     => array()
+        )
+      );
 
-      $ch = curl_init();
-      curl_setopt($ch, CURLOPT_URL, $url);
-      curl_setopt($ch, CURLOPT_POST, 1);
-      curl_setopt($ch, CURLOPT_POSTFIELDS, $f);
-      curl_setopt($ch, CURLOPT_HEADER, 0);
-      curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
-      ob_start();
-      $r = curl_exec($ch);
-      ob_end_clean();
-      curl_close ($ch);
-      $meta = json_decode($r)->meta;
+      $meta = json_decode($response['body'])->meta;
       $currency = $meta->currency_label;
       $balance = $meta->topup_balance;
 
@@ -96,39 +97,18 @@ if ( ! class_exists( 'WC_MPA_Shipping_Method' ) ) {
             'type'              => 'text',
             'required'          => true
         ),
-        // 'cust_rate'           => array(
-        //     'title'             => __( '<font color="red">*</font>Display Shipping Rate', 'myparcelasia' ),
-				// 	  'id'              => 'cust_rate',
-        //     'type'              => 'select',
-        //     'description'       => __( "You may display different types of shipping rates on your checkout page:<br/><br/>
-        //                               1) Flat Rate: A fixed amount based on product weight.<br/>
-        //                               2) MPA Rate: The rate you're enjoying right now. Eg: RM6 from 1kg", 'myparcelasia' ),
-        //     'desc_tip'          => true,
-        //     'default'           => 'mpa_rate', 
-        //     'options'           => array( 'mpa_rate'=>'MPA Rate', 'flat_rate'=>'Flat Rate'),
-        //     'required'          => true
-        // ),
-        // 'flat_rate'           => array(
-        //   'title'             => __( 'Flat Rate (RM)', 'myparcelasia' ),
-        //   'type'              => 'text',
-        //   'description'       => __( 'Shipping rate (RM) for first 1KG', 'myparcelasia' ),
-        //   'desc_tip'          => false,
-        //   'default'           => '', 
-        //   'placeholder'       => 'RM 0.00'
-        // ),
-        // 'flat_rate_above_1kg'  => array(
-        //   'type'              => 'text',
-        //   'description'       => __( 'Shipping rate (RM) for every additional KG', 'myparcelasia' ),
-        //   'desc_tip'          => false,
-        //   'default'           => '', 
-        //   'placeholder'       => 'RM 0.00'
-        // ),
-        'poslaju' => array(
+        'flash' => array(
             'title' => __( '<font color="red">*</font>Display Courier Option', 'myparcelasia' ),
-            'label' => 'Poslaju',
+            'label' => 'Flash',
             'type' => 'checkbox',
             'default' => 'yes',
             'checkboxgroup'   => 'start',
+        ),
+        'poslaju' => array(
+            'label' => 'Poslaju',
+            'type' => 'checkbox',
+            'default' => 'yes',
+            'checkboxgroup'   => '',
         ),
         'nationwide' => array(
             'label' => 'Nationwide',
@@ -263,14 +243,15 @@ if ( ! class_exists( 'WC_MPA_Shipping_Method' ) ) {
               'label'   =>  $courier_service_label." (".$weight."kg)",
               'cost'    =>  $rate->exclusive_price
             );
-            $aa = $this->get_option("poslaju") == 'yes'? ['poslaju']: '';
-            $aa[] .= $this->get_option("nationwide") == 'yes'? 'nationwide': '';
-            $aa[] .= $this->get_option("dhle") == 'yes'? 'dhle': '';
-            $aa[] .= $this->get_option("jnt") == 'yes'? 'jnt': '';
-            $aa[] .= $this->get_option("ninjavan") == 'yes'? 'ninjavan': '';
 
-            foreach($aa as $bb) {
-              if($rate->provider_code == $bb) {
+            $couriers = $this->get_option("flash") == 'yes'? ['flash']: [];
+            $couriers[] .= $this->get_option("poslaju") == 'yes'? 'poslaju': '';
+            $couriers[] .= $this->get_option("nationwide") == 'yes'? 'nationwide': '';
+            $couriers[] .= $this->get_option("dhle") == 'yes'? 'dhle': '';
+            $couriers[] .= $this->get_option("jnt") == 'yes'? 'jnt': '';
+            $couriers[] .= $this->get_option("ninjavan") == 'yes'? 'ninjavan': '';
+            foreach($couriers as $courier) {
+              if($rate->provider_code == $courier) {
                 // Register the rate
                 $this->add_rate( $shipping_rate );
               }
