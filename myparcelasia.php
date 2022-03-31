@@ -179,36 +179,38 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
             }
 
             public function admin_notices() {
-                if ( $_GET['custom_msg'] == 'already_generate' ) {
-                    ?>
-                    <div class="notice notice-info is-dismissible">
-                    <p><?php esc_html_e( 'Connote already generate!', 'text-domain' ); ?></p>
-                    </div>
-                    <?php
-                } else if ( $_GET['custom_msg'] == 'new_generate' ) {
-                    ?>
-                    <div class="notice notice-success is-dismissible">
-                    <p><?php esc_html_e( 'Connote successfully generate!', 'text-domain' ); ?></p>
-                    </div>
-                    <?php
-                } else if ( $_GET['custom_msg'] == 'insufficient_balance' ) {
-                    ?>
-                    <div class="notice notice-error is-dismissible">
-                    <p><?php esc_html_e( 'Insufficient balance! Please topup.', 'text-domain' ); ?></p>
-                    </div>
-                    <?php
-                } else if ( $_GET['custom_msg'] == 'track_not_found' ) {
-                    ?>
-                    <div class="notice notice-error is-dismissible">
-                    <p><?php esc_html_e( 'Tracking number not found! Please try again', 'text-domain' ); ?></p>
-                    </div>
-                    <?php
-                } else if ( $_GET['custom_msg'] == 'not_success' ) {
-                    ?>
-                    <div class="notice notice-error is-dismissible">
-                    <p><?php esc_html_e( 'Something wrong happen. Please try again.', 'text-domain' ); ?></p>
-                    </div>
-                    <?php
+                if(!empty($_GET)) {
+                    if ( $_GET['custom_msg'] == 'already_generate' ) {
+                        ?>
+                        <div class="notice notice-info is-dismissible">
+                        <p><?php esc_html_e( 'Connote already generate!', 'text-domain' ); ?></p>
+                        </div>
+                        <?php
+                    } else if ( $_GET['custom_msg'] == 'new_generate' ) {
+                        ?>
+                        <div class="notice notice-success is-dismissible">
+                        <p><?php esc_html_e( 'Connote successfully generate!', 'text-domain' ); ?></p>
+                        </div>
+                        <?php
+                    } else if ( $_GET['custom_msg'] == 'insufficient_balance' ) {
+                        ?>
+                        <div class="notice notice-error is-dismissible">
+                        <p><?php esc_html_e( 'Insufficient balance! Please topup.', 'text-domain' ); ?></p>
+                        </div>
+                        <?php
+                    } else if ( $_GET['custom_msg'] == 'track_not_found' ) {
+                        ?>
+                        <div class="notice notice-error is-dismissible">
+                        <p><?php esc_html_e( 'Tracking number not found! Please try again', 'text-domain' ); ?></p>
+                        </div>
+                        <?php
+                    } else if ( $_GET['custom_msg'] == 'not_success' ) {
+                        ?>
+                        <div class="notice notice-error is-dismissible">
+                        <p><?php esc_html_e( 'Something wrong happen. Please try again.', 'text-domain' ); ?></p>
+                        </div>
+                        <?php
+                    }
                 }
             }
             
@@ -239,6 +241,9 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                     $weight = (int) filter_var($item['name'], FILTER_SANITIZE_NUMBER_INT);
 
                     switch (true) {
+                        case strpos($item['name'], 'Flash') !== false:
+                            $provider_code = 'flash';
+                            break;
                         case strpos($item['name'], 'POSLaju') !== false:
                             $provider_code = 'poslaju';
                             break;
@@ -263,7 +268,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                         add_filter( 'redirect_post_location', array( $this, 'add_notice_already_generate' ), 99 );
                     }
                 } else {
-                    $providers=array("poslaju","nationwide","jnt","ninjavan");
+                    $providers=array("flash","poslaju","nationwide","jnt","ninjavan");
                     $extract = array(
                         array(
                         "integration_order_id"=> $order_data['order_key'],
