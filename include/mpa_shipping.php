@@ -144,6 +144,7 @@ if ( ! class_exists( 'WC_MPA_Shipping_Method' ) ) {
             'title'             => __( '<font color="red">*</font>Send Method', 'myparcelasia' ),
             'id'              => 'send_method',
             'type'              => 'select',
+            'description'       => __( 'By choosing Drop Off, all providers send method will be Drop Off except Flash Express. Flash Express send method will always be Pickup.', 'myparcelasia' ),
             'desc_tip'          => true,
             'default'           => 'dropoff', 
             'options'           => array( 'dropoff'=>'Drop Off','pickup'=>'Pickup'),

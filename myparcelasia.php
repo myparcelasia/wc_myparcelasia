@@ -217,7 +217,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
             public function generate_tracking_order( $order ) {
                 $WC_MPA_Config = new MPA_Shipping_Config();
                 global $woocommerce,$wpdb;
-                
+
                 include 'include/mpa_shipping.php';
                 $WC_MPA_Shipping_Method = new WC_MPA_Shipping_Method();
                 self::$integration_id = $WC_MPA_Shipping_Method->settings['api_key'];
@@ -229,6 +229,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                 $order_data = $data->get_data();
                 $product_data = $data->get_items();
                 $sender_details = WC()->countries;
+                dd($data->get_items( 'shipping' ));
 
                 date_default_timezone_set("Asia/Kuala_Lumpur");
                 if(date("H:i")>="11:45") {
@@ -273,7 +274,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                         array(
                         "integration_order_id"=> $order_data['order_key'],
                         "integration_vendor"=> 'wc_plugin_single',
-                        "send_method"=> $send_method,
+                        "send_method"=> ($provider_code=='flash' ? 'pickup':$send_method),
                         "size"=>"flyers_s",
                         "declared_weight"=> $weight>0 ? $weight : 0.0,
                         "provider_code"=> $provider_code ?? $providers[array_rand($providers)],
@@ -396,7 +397,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                         $extract[] =  array(
                                 "integration_order_id"=> $order_data['order_key'],
                                 "integration_vendor"=> 'wc_plugin_bulk',
-                                "send_method"=> $send_method,
+                                "send_method"=> ($provider_code=='flash' ? 'pickup':$send_method),
                                 "size"=>"flyers_s",
                                 "declared_weight"=> $weight>0 ? $weight : 0.0,
                                 "provider_code"=> $provider_code ?? $providers[array_rand($providers)],
