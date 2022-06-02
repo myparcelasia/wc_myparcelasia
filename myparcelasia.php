@@ -229,7 +229,6 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                 $order_data = $data->get_data();
                 $product_data = $data->get_items();
                 $sender_details = WC()->countries;
-                dd($data->get_items( 'shipping' ));
 
                 date_default_timezone_set("Asia/Kuala_Lumpur");
                 if(date("H:i")>="11:45") {
@@ -300,7 +299,8 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                         "receiver_country_code"=> strtolower($order_data['billing']['country']),
                         "content_type"=> "others",
                         "declared_send_at"=> $pickup_date,
-                        "send_date"=> $pickup_date
+                        "send_date"=> $pickup_date,
+                        "log"=> json_encode($order_data)
                         )
                     );
 
@@ -423,7 +423,8 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                                 "receiver_country_code"=> strtolower($order_data['billing']['country']),
                                 "content_type"=> "others",
                                 "declared_send_at"=> $pickup_date,
-                                "send_date"=> $pickup_date
+                                "send_date"=> $pickup_date,
+                                "log"=> json_encode($order_data)
                         );
                     }
                     //END: check condition tracking no exist
