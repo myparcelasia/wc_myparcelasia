@@ -42,7 +42,7 @@ if ( ! class_exists( 'MPA_Shipping_API' ) ) {
                     "declared_weight": '.$weight.'
                 }';
 
-            if($WC_Country->get_base_country()=='MY' && $destination["country"] == 'MY'){                
+            if($WC_Country->get_base_country()=='MY' && $destination["country"] == 'MY'){
                 $response = wp_remote_post( $url, array(
                     'method'      => 'POST',
                     'timeout'     => 45,
@@ -54,7 +54,10 @@ if ( ! class_exists( 'MPA_Shipping_API' ) ) {
                     )
                 );
 
+                $rates_collection = json_decode($response['body'])->data->rates;
+                $account = json_decode($response['body'])->topup;
                 $r_rates = json_decode($response['body'])->data->rates;
+                $r_rates['account'] = $account;
                 if(sizeof($r_rates) > 0){                
                     return $r_rates;
                 }

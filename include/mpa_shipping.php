@@ -236,13 +236,12 @@ if ( ! class_exists( 'WC_MPA_Shipping_Method' ) ) {
         }
         foreach ($groupped as $cid => $services) {
           foreach ( $services as $rate ) {
-
             $courier_service_label = $rate->provider_label;
-
+            $price = $rates['account'] == 'exclusive' ? $rate->exclusive_price : $rate->normal_price;
             $shipping_rate = array(
               'id'      =>  $rate->provider_code,
               'label'   =>  $courier_service_label." (".$weight."kg)",
-              'cost'    =>  $rate->exclusive_price
+              'cost'    =>  $price
             );
 
             $couriers = $this->get_option("flash") == 'yes'? ['flash']: [];
