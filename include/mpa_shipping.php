@@ -75,98 +75,102 @@ if ( ! class_exists( 'WC_MPA_Shipping_Method' ) ) {
         )
       );
 
-      $meta = json_decode($response['body'])->meta;
-      $currency = $meta->currency_label;
-      $balance = $meta->topup_balance;
-
-      $this->form_fields = array(
-        'api_key' => array(
-            'title'             => __( '<font color="red">*</font>API Key', 'myparcelasia' ),
-            'type'              => 'text',
-            'description'       => __( 'Here’s how to get api Key:<br/>
-                                      1. Login your MyParcel Asia Account<br/>
-                                      2. Click "Integration v1.2" - "API Docs" <br/>
-                                      3. Choose " WooCommerce" <br/>
-                                      4. Fill in required details <br/>
-                                      5. Copy the API Key and paste it here.', 'myparcelasia' ),
-            'desc_tip'          => true,
-            'required'          => true
-        ),
-        'sender_postcode' => array(
-            'title'             => __( '<font color="red">*</font>Sender Postcode', 'myparcelasia' ),
-            'type'              => 'text',
-            'required'          => true
-        ),
-        'flash' => array(
-            'title' => __( '<font color="red">*</font>Display Courier Option', 'myparcelasia' ),
-            'label' => 'Flash',
-            'type' => 'checkbox',
-            'default' => 'yes',
-            'checkboxgroup'   => 'start',
-        ),
-        'poslaju' => array(
-            'label' => 'Poslaju',
-            'type' => 'checkbox',
-            'default' => 'yes',
-            'checkboxgroup'   => '',
-        ),
-        'nationwide' => array(
-            'label' => 'Nationwide',
-            'type' => 'checkbox',
-            'default' => 'yes',
-            'checkboxgroup'   => '',
-        ),
-        'dhle' => array(
-            'label' => 'DHL eCommerce',
-            'type' => 'checkbox',
-            'default' => 'yes',
-            'checkboxgroup'   => '',
-        ),
-        'jnt' => array(
-            'label' => 'J&T',
-            'type' => 'checkbox',
-            'default' => 'yes',
-            'checkboxgroup'   => '',
-        ),
-        'ninjavan' => array(
-            'label' => 'Ninjavan',
-            'type' => 'checkbox',
-            'default' => 'yes',
-            'checkboxgroup'   => 'end',
-        ),
-        'phone_number'          => array(
-            'title'             => __( '<font color="red">*</font>Phone Number', 'myparcelasia' ),
-            'id'                => 'phone_number',
-            'type'              => 'text',
-            'required'          => true
-        ),
-        'send_method'           => array(
-            'title'             => __( '<font color="red">*</font>Send Method', 'myparcelasia' ),
-            'id'              => 'send_method',
-            'type'              => 'select',
-            'description'       => __( 'By choosing Drop Off, all providers send method will be Drop Off except Flash Express. Flash Express send method will always be Pickup.', 'myparcelasia' ),
-            'desc_tip'          => true,
-            'default'           => 'dropoff', 
-            'options'           => array( 'dropoff'=>'Drop Off','pickup'=>'Pickup'),
-            'required'          => true
-        ),
-        'print_type'           => array(
-            'title'             => __( '<font color="red">*</font>Print Type', 'myparcelasia' ),
-					  'id'              => 'print_type',
-            'type'              => 'select',
-            'desc_tip'          => true,
-            'default'           => 'a4_size', 
-            'options'           => array( 'a4_size'=>'A4 size','thermal'=>'Thermal size'),
-            'required'          => true
-        ),
-        'topup_balance' => array(
-          'title'       => __( 'Topup Balance (RM)', 'myparcelasia' ),
-          'type'        => 'text',
-          'placeholder' => __( $balance, 'woocommerce' ),
-          'desc_tip'    => true,
-          'custom_attributes' => array('readonly' => 'readonly'), // Enabling read only
-        ),
-      );
+      if(!is_wp_error($response)) {
+        $meta = json_decode($response['body'])->meta;
+        $currency = $meta->currency_label;
+        $balance = $meta->topup_balance;
+  
+        $this->form_fields = array(
+          'api_key' => array(
+              'title'             => __( '<font color="red">*</font>API Key', 'myparcelasia' ),
+              'type'              => 'text',
+              'description'       => __( 'Here’s how to get api Key:<br/>
+                                        1. Login your MyParcel Asia Account<br/>
+                                        2. Click "Integration v1.2" - "API Docs" <br/>
+                                        3. Choose " WooCommerce" <br/>
+                                        4. Fill in required details <br/>
+                                        5. Copy the API Key and paste it here.', 'myparcelasia' ),
+              'desc_tip'          => true,
+              'required'          => true
+          ),
+          'sender_postcode' => array(
+              'title'             => __( '<font color="red">*</font>Sender Postcode', 'myparcelasia' ),
+              'type'              => 'text',
+              'required'          => true
+          ),
+          'flash' => array(
+              'title' => __( '<font color="red">*</font>Display Courier Option', 'myparcelasia' ),
+              'label' => 'Flash',
+              'type' => 'checkbox',
+              'default' => 'yes',
+              'checkboxgroup'   => 'start',
+          ),
+          'poslaju' => array(
+              'label' => 'Poslaju',
+              'type' => 'checkbox',
+              'default' => 'yes',
+              'checkboxgroup'   => '',
+          ),
+          'nationwide' => array(
+              'label' => 'Nationwide',
+              'type' => 'checkbox',
+              'default' => 'yes',
+              'checkboxgroup'   => '',
+          ),
+          'dhle' => array(
+              'label' => 'DHL eCommerce',
+              'type' => 'checkbox',
+              'default' => 'yes',
+              'checkboxgroup'   => '',
+          ),
+          'jnt' => array(
+              'label' => 'J&T',
+              'type' => 'checkbox',
+              'default' => 'yes',
+              'checkboxgroup'   => '',
+          ),
+          'ninjavan' => array(
+              'label' => 'Ninjavan',
+              'type' => 'checkbox',
+              'default' => 'yes',
+              'checkboxgroup'   => 'end',
+          ),
+          'phone_number'          => array(
+              'title'             => __( '<font color="red">*</font>Phone Number', 'myparcelasia' ),
+              'id'                => 'phone_number',
+              'type'              => 'text',
+              'required'          => true
+          ),
+          'send_method'           => array(
+              'title'             => __( '<font color="red">*</font>Send Method', 'myparcelasia' ),
+              'id'              => 'send_method',
+              'type'              => 'select',
+              'description'       => __( 'By choosing Drop Off, all providers send method will be Drop Off except Flash Express. Flash Express send method will always be Pickup.', 'myparcelasia' ),
+              'desc_tip'          => true,
+              'default'           => 'dropoff',
+              'options'           => array( 'dropoff'=>'Drop Off','pickup'=>'Pickup'),
+              'required'          => true
+          ),
+          'print_type'           => array(
+              'title'             => __( '<font color="red">*</font>Print Type', 'myparcelasia' ),
+              'id'              => 'print_type',
+              'type'              => 'select',
+              'desc_tip'          => true,
+              'default'           => 'a4_size',
+              'options'           => array( 'a4_size'=>'A4 size','thermal'=>'Thermal size'),
+              'required'          => true
+          ),
+          'topup_balance' => array(
+            'title'       => __( 'Topup Balance (RM)', 'myparcelasia' ),
+            'type'        => 'text',
+            'placeholder' => __( $balance, 'woocommerce' ),
+            'desc_tip'    => true,
+            'custom_attributes' => array('readonly' => 'readonly'), // Enabling read only
+          ),
+        );
+      } else {
+        echo $response->get_error_message();
+      }
     } // End init_form_fields()
 
     /**
