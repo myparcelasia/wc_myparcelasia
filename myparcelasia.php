@@ -1,11 +1,11 @@
 <?php
 /*
-Plugin Name: MyParcel Asia
-Plugin URI: https://app.myparcelasia.com/secure/integration_store
-Description: MyParcel Asia plugin to enable courier and shipping rate to display in checkout page. To get started, activate MyParcel Asia plugin and then go to WooCommerce > Settings > Shipping > MyParcel Asia Shipping to set up your Integration ID.
+Plugin Name: MyParcel Asia (Demo)
+Plugin URI: https://demo.myparcelasia.com/secure/integration_store
+Description: This is DEMO Plugin. To use live production please remove this demo plugin and download from https://app.myparcelasia.com. MyParcel Asia plugin to enable courier and shipping rate to display in checkout page. To get started, activate MyParcel Asia plugin and then go to WooCommerce > Settings > Shipping > MyParcel Asia Shipping to set up your Integration ID.
 Version: 1.0.0
 Author: MyParcel Asia
-Author URI: https://app.myparcelasia.com
+Author URI: https://demo.myparcelasia.com
 Wordpress requires at least: 5.0.0
 Wordpress tested up to: 5.9.0
 WC requires at least: 5.0.0
@@ -63,7 +63,10 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                     if (!empty($_REQUEST['insufficient'])) {
                         $num_changed = (int) $_REQUEST['insufficient'];
                         printf('<div id="message" class="notice notice-error is-dismissible"><p>' . __('Insufficient balance for %d order.', 'txtdomain') . '</p></div>', $num_changed);
-                        
+                    } else if (!empty($_REQUEST['missing_param'])) {
+                        $num_changed = (int) $_REQUEST['missing_param'];
+                        $link = $_REQUEST['missing_param'];
+                        printf('<div id="message" class="notice notice-error is-dismissible"><p>' . __('Missing value to create shipment.', 'txtdomain') . '</p></div>', $num_changed);
                     } else if (!empty($_REQUEST['can_generate'])) {
                         $num_changed = (int) $_REQUEST['can_generate'];
                         $link = $_REQUEST['link'];
@@ -166,6 +169,11 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
             public function add_notice_insufficient_balance( $location ) {
                 remove_filter( 'redirect_post_location', array( $this, 'add_notice_insufficient_balance' ), 99 );
                 return add_query_arg( array( 'custom_msg' => 'insufficient_balance' ), $location );
+            }
+
+            public function add_notice_missing_param( $location ) {
+                remove_filter( 'redirect_post_location', array( $this, 'add_notice_missing_param' ), 99 );
+                return add_query_arg( array( 'custom_msg' => 'missing_param' ), $location );
             }
             
             public function add_notice_track_not_found( $location ) {
@@ -327,6 +335,8 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                         $error_msg = json_decode($response['body'])->message[0]->message;
                         if(strpos($error_msg, "Insufficient balance") !== false) {
                             add_filter( 'redirect_post_location', array( $this, 'add_notice_insufficient_balance' ), 99 );
+                        } else if(strpos($error_msg, "missing value for parameter") !== false) {
+                            add_filter( 'redirect_post_location', array( $this, 'add_notice_missing_param' ), 99 );
                         } else if(strpos($error_msg, "already exist") !== false) {
                             $exist_tracking = json_decode($response['body'])->message[0]->tracking_no;
                             update_post_meta($order->id,'track_no', $exist_tracking);
@@ -497,6 +507,9 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                                     update_post_meta($post_ids[$key],'track_no', $bulk_error->tracking_no);
                                     $list_track_no[] = $bulk_error->tracking_no;
                                     //if old and new cons together - only exist order return message - need workaround
+                                } else if(strpos($bulk_error, "missing parameter") !== false) {
+                                    update_post_meta($post_ids[$key],'track_no', $bulk_error->tracking_no);
+                                    $list_track_no[] = $bulk_error->tracking_no;
                                 } else {
                                     if($error_msg) {
                                         $redirect_url = add_query_arg(array('general_msg'=>$error_msg), $redirect_to);
