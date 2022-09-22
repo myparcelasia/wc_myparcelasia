@@ -3,7 +3,7 @@
 Plugin Name: MyParcel Asia
 Plugin URI: https://app.myparcelasia.com/secure/integration_store
 Description: MyParcel Asia plugin to enable courier and shipping rate to display in checkout page. To get started, activate MyParcel Asia plugin and then go to WooCommerce > Settings > Shipping > MyParcel Asia Shipping to set up your Integration ID.
-Version: 1.0.0
+Version: 1.1.0
 Author: MyParcel Asia
 Author URI: https://app.myparcelasia.com
 Wordpress requires at least: 5.0.0
@@ -268,15 +268,37 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                         add_filter( 'redirect_post_location', array( $this, 'add_notice_already_generate' ), 99 );
                     }
                 } else {
-                    $providers=array("flash","poslaju","nationwide","jnt","ninjavan");
+                    $receiver_company_name = $order_data['billing']['company'];
+                    $receiver_name = $order_data['billing']['first_name'].' '.$order_data['billing']['last_name'];
+                    $receiver_phone = $order_data['billing']['phone'];
+                    $receiver_email = $order_data['billing']['email'];
+                    $receiver_address_line_1 = $order_data['billing']['address_1'];
+                    $receiver_address_line_2 = $order_data['billing']['address_2'];
+                    $receiver_address_line_3 = $order_data['billing']['city'];
+                    $receiver_state_code = $order_data['billing']['state'];
+                    $receiver_postcode = $order_data['billing']['postcode'];
+                    $receiver_country_code = $order_data['billing']['country'];
+
+                    if($order_data['shipping']['first_name']) {                            
+                        $receiver_company_name = $order_data['shipping']['company'];
+                        $receiver_name = $order_data['shipping']['first_name'].' '.$order_data['shipping']['last_name'];
+                        $receiver_phone = $order_data['shipping']['phone'];
+                        $receiver_email = $order_data['shipping']['email'];
+                        $receiver_address_line_1 = $order_data['shipping']['address_1'];
+                        $receiver_address_line_2 = $order_data['shipping']['address_2'];
+                        $receiver_address_line_3 = $order_data['shipping']['city'];
+                        $receiver_state_code = $order_data['shipping']['state'];
+                        $receiver_postcode = $order_data['shipping']['postcode'];
+                        $receiver_country_code = $order_data['shipping']['country'];
+                    }
                     $extract = array(
                         array(
                         "integration_order_id"=> $order_data['order_key'],
                         "integration_vendor"=> 'wc_plugin_single',
-                        "send_method"=> ($provider_code=='flash' ? 'pickup':$send_method),
+                        "send_method"=> $send_method,
                         "size"=>"flyers_s",
-                        "declared_weight"=> $weight>0 ? $weight : 0.0,
-                        "provider_code"=> $provider_code ?? $providers[array_rand($providers)],
+                        "declared_weight"=> $weight>0 ? $weight : 0.1,
+                        "provider_code"=> $provider_code,
                         "type"=>"parcel",
                         "sender_company_name"=>get_bloginfo( 'name' ),
                         "sender_name"=> get_bloginfo( 'name' ),
@@ -287,16 +309,16 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                         "sender_address_line_3"=>$sender_details->get_base_city(),
                         "sender_address_line_4"=>$sender_details->get_base_state(),
                         "sender_postcode"=> $sender_details->get_base_postcode(),
-                        "receiver_company_name"=> $order_data['billing']['company'],
-                        "receiver_name"=> $order_data['billing']['first_name'].' '.$order_data['billing']['last_name'],
-                        "receiver_phone"=> $order_data['billing']['phone'],
-                        "receiver_email"=> $order_data['billing']['email'],
-                        "receiver_address_line_1"=> $order_data['billing']['address_1'],
-                        "receiver_address_line_2"=> $order_data['billing']['address_1'],
-                        "receiver_address_line_3"=> $order_data['billing']['city'],
-                        "receiver_address_line_4"=> $order_data['billing']['state'],
-                        "receiver_postcode"=> strtolower($order_data['billing']['postcode']),
-                        "receiver_country_code"=> strtolower($order_data['billing']['country']),
+                        "receiver_company_name"=> $receiver_company_name,
+                        "receiver_name"=> $receiver_name,
+                        "receiver_phone"=> $receiver_phone,
+                        "receiver_email"=> $receiver_email,
+                        "receiver_address_line_1"=> $receiver_address_line_1,
+                        "receiver_address_line_2"=> $receiver_address_line_2,
+                        "receiver_address_line_3"=> $receiver_address_line_3,
+                        "receiver_state_code"=> $receiver_state_code,
+                        "receiver_postcode"=> $receiver_postcode,
+                        "receiver_country_code"=> strtolower($receiver_country_code),
                         "content_type"=> "others",
                         "declared_send_at"=> $pickup_date,
                         "send_date"=> $pickup_date,
@@ -395,15 +417,37 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                                     break;
                                 }
                         }
+                        $receiver_company_name = $order_data['billing']['company'];
+                        $receiver_name = $order_data['billing']['first_name'].' '.$order_data['billing']['last_name'];
+                        $receiver_phone = $order_data['billing']['phone'];
+                        $receiver_email = $order_data['billing']['email'];
+                        $receiver_address_line_1 = $order_data['billing']['address_1'];
+                        $receiver_address_line_2 = $order_data['billing']['address_2'];
+                        $receiver_address_line_3 = $order_data['billing']['city'];
+                        $receiver_state_code = $order_data['billing']['state'];
+                        $receiver_postcode = $order_data['billing']['postcode'];
+                        $receiver_country_code = $order_data['billing']['country'];
+
+                        if($order_data['shipping']['first_name']) {                            
+                            $receiver_company_name = $order_data['shipping']['company'];
+                            $receiver_name = $order_data['shipping']['first_name'].' '.$order_data['shipping']['last_name'];
+                            $receiver_phone = $order_data['shipping']['phone'];
+                            $receiver_email = $order_data['shipping']['email'];
+                            $receiver_address_line_1 = $order_data['shipping']['address_1'];
+                            $receiver_address_line_2 = $order_data['shipping']['address_2'];
+                            $receiver_address_line_3 = $order_data['shipping']['city'];
+                            $receiver_state_code = $order_data['shipping']['state'];
+                            $receiver_postcode = $order_data['shipping']['postcode'];
+                            $receiver_country_code = $order_data['shipping']['country'];
+                        }
                         //if not yet create order
-                        $providers=array("poslaju","jnt","ninjavan");
                         $extract[] =  array(
                                 "integration_order_id"=> $order_data['order_key'],
                                 "integration_vendor"=> 'wc_plugin_bulk',
-                                "send_method"=> ($provider_code=='flash' ? 'pickup':$send_method),
+                                "send_method"=> $send_method,
                                 "size"=>"flyers_s",
-                                "declared_weight"=> $weight>0 ? $weight : 0.0,
-                                "provider_code"=> $provider_code ?? $providers[array_rand($providers)],
+                                "declared_weight"=> $weight>0 ? $weight : 0.1,
+                                "provider_code"=> $provider_code,
                                 "type"=>"parcel",
                                 "sender_company_name"=>get_bloginfo( 'name' ),
                                 "sender_name"=> get_bloginfo( 'name' ),
@@ -414,16 +458,16 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                                 "sender_address_line_3"=> $sender_details->get_base_city(),
                                 "sender_address_line_4"=> $sender_details->get_base_state(),
                                 "sender_postcode"=> $sender_details->get_base_postcode(),
-                                "receiver_company_name"=> $order_data['billing']['company'],
-                                "receiver_name"=> $order_data['billing']['first_name'].' '.$order_data['billing']['last_name'],
-                                "receiver_phone"=> $order_data['billing']['phone'],
-                                "receiver_email"=> $order_data['billing']['email'],
-                                "receiver_address_line_1"=> $order_data['billing']['address_1'],
-                                "receiver_address_line_2"=> $order_data['billing']['address_2'],
-                                "receiver_address_line_3"=> $order_data['billing']['city'],
-                                "receiver_address_line_4"=> $order_data['billing']['state'],
-                                "receiver_postcode"=> strtolower($order_data['billing']['postcode']),
-                                "receiver_country_code"=> strtolower($order_data['billing']['country']),
+                                "receiver_company_name"=> $receiver_company_name,
+                                "receiver_name"=> $receiver_name,
+                                "receiver_phone"=> $receiver_phone,
+                                "receiver_email"=> $receiver_email,
+                                "receiver_address_line_1"=> $receiver_address_line_1,
+                                "receiver_address_line_2"=> $receiver_address_line_2,
+                                "receiver_address_line_3"=> $receiver_address_line_3,
+                                "receiver_state_code"=> $receiver_state_code,
+                                "receiver_postcode"=> $receiver_postcode,
+                                "receiver_country_code"=> strtolower($receiver_country_code),
                                 "content_type"=> "others",
                                 "declared_send_at"=> $pickup_date,
                                 "send_date"=> $pickup_date,
