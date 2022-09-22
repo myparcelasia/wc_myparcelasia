@@ -282,8 +282,6 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                     if($order_data['shipping']['first_name']) {                            
                         $receiver_company_name = $order_data['shipping']['company'];
                         $receiver_name = $order_data['shipping']['first_name'].' '.$order_data['shipping']['last_name'];
-                        $receiver_phone = $order_data['shipping']['phone'];
-                        $receiver_email = $order_data['shipping']['email'];
                         $receiver_address_line_1 = $order_data['shipping']['address_1'];
                         $receiver_address_line_2 = $order_data['shipping']['address_2'];
                         $receiver_address_line_3 = $order_data['shipping']['city'];
@@ -431,8 +429,6 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                         if($order_data['shipping']['first_name']) {                            
                             $receiver_company_name = $order_data['shipping']['company'];
                             $receiver_name = $order_data['shipping']['first_name'].' '.$order_data['shipping']['last_name'];
-                            $receiver_phone = $order_data['shipping']['phone'];
-                            $receiver_email = $order_data['shipping']['email'];
                             $receiver_address_line_1 = $order_data['shipping']['address_1'];
                             $receiver_address_line_2 = $order_data['shipping']['address_2'];
                             $receiver_address_line_3 = $order_data['shipping']['city'];
