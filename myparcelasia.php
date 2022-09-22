@@ -3,7 +3,7 @@
 Plugin Name: MyParcel Asia
 Plugin URI: https://app.myparcelasia.com/secure/integration_store
 Description: MyParcel Asia plugin to enable courier and shipping rate to display in checkout page. To get started, activate MyParcel Asia plugin and then go to WooCommerce > Settings > Shipping > MyParcel Asia Shipping to set up your Integration ID.
-Version: 1.1.2
+Version: 1.1.3
 Author: MyParcel Asia
 Author URI: https://app.myparcelasia.com
 Wordpress requires at least: 5.0.0
@@ -343,34 +343,30 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                         'cookies'     => array()
                         )
                     );
-                    if(!is_wp_error($response)) {
-                        $error_msg = json_decode($response['body'])->message[0]->message;
-                        if(strpos($error_msg, "Insufficient balance") !== false) {
-                            add_filter( 'redirect_post_location', array( $this, 'add_notice_insufficient_balance' ), 99 );
-                        } else if(strpos($error_msg, "already exist") !== false) {
-                            $exist_tracking = json_decode($response['body'])->message[0]->tracking_no;
-                            update_post_meta($order->id,'track_no', $exist_tracking);
-                            add_filter( 'redirect_post_location', array( $this, 'add_notice_new_generate' ), 99 );
-                        } else {
-                            $result = json_decode($response['body']);
-                            $message = $result->message;
-                            if($message == "success") {
-                                $success = $result->data;
-            
-                                $print_tracks = $success->tracking_no;
-                                if($print_tracks){
-                                    update_post_meta($order->id,'track_no',$print_tracks[0]->tracking_no);
-                                    $order->add_order_note( __( 'Connote has been generated successfully.', 'woocommerce' ), false, true );
-                                    add_filter( 'redirect_post_location', array( $this, 'add_notice_new_generate' ), 99 );
-                                } else {
-                                    add_filter( 'redirect_post_location', array( $this, 'add_notice_track_not_found' ), 99 );
-                                }
-                            } else {
-                                add_filter( 'redirect_post_location', array( $this, 'add_notice_not_success' ), 99 );
-                            }
-                        }
+                    $error_msg = json_decode($response['body'])->message[0]->message;
+                    if(strpos($error_msg, "Insufficient balance") !== false) {
+                        add_filter( 'redirect_post_location', array( $this, 'add_notice_insufficient_balance' ), 99 );
+                    } else if(strpos($error_msg, "already exist") !== false) {
+                        $exist_tracking = json_decode($response['body'])->message[0]->tracking_no;
+                        update_post_meta($order->id,'track_no', $exist_tracking);
+                        add_filter( 'redirect_post_location', array( $this, 'add_notice_new_generate' ), 99 );
                     } else {
-                        echo $response->get_error_message();
+                        $result = json_decode($response['body']);
+                        $message = $result->message;
+                        if($message == "success") {
+                            $success = $result->data;
+        
+                            $print_tracks = $success->tracking_no;
+                            if($print_tracks){
+                                update_post_meta($order->id,'track_no',$print_tracks[0]->tracking_no);
+                                $order->add_order_note( __( 'Connote has been generated successfully.', 'woocommerce' ), false, true );
+                                add_filter( 'redirect_post_location', array( $this, 'add_notice_new_generate' ), 99 );
+                            } else {
+                                add_filter( 'redirect_post_location', array( $this, 'add_notice_track_not_found' ), 99 );
+                            }
+                        } else {
+                            add_filter( 'redirect_post_location', array( $this, 'add_notice_not_success' ), 99 );
+                        }
                     }
                 }
             }
@@ -512,44 +508,40 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                         )
                     );
                     
-                    if(!is_wp_error($response)) {
-                        $result = json_decode($response['body']);
-                        $message = $result->message;
-                        if($message == "success") { //for new cons only
-                            $success = $result->data;
-                            $print_tracks = $success->tracking_no;
-                            if($print_tracks){
-                                $count_track = count($list_track_no);
-                                foreach( $print_tracks as $key=>$print_track ){
-                                    update_post_meta($post_ids[$key+$count_track],'track_no',$print_track->tracking_no);
-                                    $list_track_no[] = $print_track->tracking_no;
-                                }
+                    $result = json_decode($response['body']);
+                    $message = $result->message;
+                    if($message == "success") { //for new cons only
+                        $success = $result->data;
+                        $print_tracks = $success->tracking_no;
+                        if($print_tracks){
+                            $count_track = count($list_track_no);
+                            foreach( $print_tracks as $key=>$print_track ){
+                                update_post_meta($post_ids[$key+$count_track],'track_no',$print_track->tracking_no);
+                                $list_track_no[] = $print_track->tracking_no;
                             }
-                            //cont to print
-                        } else { //not success message
-                            $error_msg = json_decode($response['body'])->message[0]->message;
-                            if(strpos($error_msg, "Insufficient balance") !== false) {
-                                $redirect_from= remove_query_arg(array('can_generate','link'), $redirect_to);
-                                $redirect_url = add_query_arg('insufficient', count($post_ids), $redirect_from);
-                                return $redirect_url; //exit if insufficient
-                            }
+                        }
+                        //cont to print
+                    } else { //not success message
+                        $error_msg = json_decode($response['body'])->message[0]->message;
+                        if(strpos($error_msg, "Insufficient balance") !== false) {
+                            $redirect_from= remove_query_arg(array('can_generate','link'), $redirect_to);
+                            $redirect_url = add_query_arg('insufficient', count($post_ids), $redirect_from);
+                            return $redirect_url; //exit if insufficient
+                        }
 
-                            $bulk_errors = json_decode($response['body'])->message;
-                            foreach($bulk_errors as $key=>$bulk_error){
-                                if(strpos($bulk_error, "already exist") !== false) {
-                                    update_post_meta($post_ids[$key],'track_no', $bulk_error->tracking_no);
-                                    $list_track_no[] = $bulk_error->tracking_no;
-                                    //if old and new cons together - only exist order return message - need workaround
-                                } else {
-                                    if($error_msg) {
-                                        $redirect_url = add_query_arg(array('general_msg'=>$error_msg), $redirect_to);
-                                        return $redirect_url;
-                                    }
+                        $bulk_errors = json_decode($response['body'])->message;
+                        foreach($bulk_errors as $key=>$bulk_error){
+                            if(strpos($bulk_error, "already exist") !== false) {
+                                update_post_meta($post_ids[$key],'track_no', $bulk_error->tracking_no);
+                                $list_track_no[] = $bulk_error->tracking_no;
+                                //if old and new cons together - only exist order return message - need workaround
+                            } else {
+                                if($error_msg) {
+                                    $redirect_url = add_query_arg(array('general_msg'=>$error_msg), $redirect_to);
+                                    return $redirect_url;
                                 }
                             }
                         }
-                    } else {
-                        echo $response->get_error_message();
                     }
                 }
                 
