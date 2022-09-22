@@ -466,7 +466,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                                 "content_type"=> "others",
                                 "declared_send_at"=> $pickup_date,
                                 "send_date"=> $pickup_date,
-                                "log"=> json_encode($order_data)
+                                "log"=> json_encode($data->get_items('shipping'))
                         );
                     }
                     //END: check condition tracking no exist
