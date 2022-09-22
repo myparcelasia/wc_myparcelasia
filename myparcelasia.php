@@ -3,7 +3,7 @@
 Plugin Name: MyParcel Asia (Demo)
 Plugin URI: https://demo.myparcelasia.com/secure/integration_store
 Description: This is DEMO Plugin. To use live production please remove this demo plugin and download from https://app.myparcelasia.com. MyParcel Asia plugin to enable courier and shipping rate to display in checkout page. To get started, activate MyParcel Asia plugin and then go to WooCommerce > Settings > Shipping > MyParcel Asia Shipping to set up your Integration ID.
-Version: 1.0.0
+Version: 1.1.5
 Author: MyParcel Asia
 Author URI: https://demo.myparcelasia.com
 Wordpress requires at least: 5.0.0
@@ -246,7 +246,8 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                 }                
 
                 foreach( $data->get_items( 'shipping' ) as $item_id => $item ){
-                    $weight = (int) filter_var($item['name'], FILTER_SANITIZE_NUMBER_INT);
+                    preg_match('!\d+\.*\d*!', $item['name'], $matches);
+                    $weight = (float)$matches[0];
 
                     switch (true) {
                         case strpos($item['name'], 'Flash') !== false:
@@ -276,15 +277,35 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                         add_filter( 'redirect_post_location', array( $this, 'add_notice_already_generate' ), 99 );
                     }
                 } else {
-                    $providers=array("flash","poslaju","nationwide","jnt","ninjavan");
+                    $receiver_company_name = $order_data['billing']['company'];
+                    $receiver_name = $order_data['billing']['first_name'].' '.$order_data['billing']['last_name'];
+                    $receiver_phone = $order_data['billing']['phone'];
+                    $receiver_email = $order_data['billing']['email'];
+                    $receiver_address_line_1 = $order_data['billing']['address_1'];
+                    $receiver_address_line_2 = $order_data['billing']['address_2'];
+                    $receiver_address_line_3 = $order_data['billing']['city'];
+                    $receiver_state_code = $order_data['billing']['state'];
+                    $receiver_postcode = $order_data['billing']['postcode'];
+                    $receiver_country_code = $order_data['billing']['country'];
+
+                    if($order_data['shipping']['first_name']) {                            
+                        $receiver_company_name = $order_data['shipping']['company'];
+                        $receiver_name = $order_data['shipping']['first_name'].' '.$order_data['shipping']['last_name'];
+                        $receiver_address_line_1 = $order_data['shipping']['address_1'];
+                        $receiver_address_line_2 = $order_data['shipping']['address_2'];
+                        $receiver_address_line_3 = $order_data['shipping']['city'];
+                        $receiver_state_code = $order_data['shipping']['state'];
+                        $receiver_postcode = $order_data['shipping']['postcode'];
+                        $receiver_country_code = $order_data['shipping']['country'];
+                    }
                     $extract = array(
                         array(
                         "integration_order_id"=> $order_data['order_key'],
                         "integration_vendor"=> 'wc_plugin_single',
-                        "send_method"=> ($provider_code=='flash' ? 'pickup':$send_method),
+                        "send_method"=> $send_method,
                         "size"=>"flyers_s",
-                        "declared_weight"=> $weight>0 ? $weight : 0.0,
-                        "provider_code"=> $provider_code ?? $providers[array_rand($providers)],
+                        "declared_weight"=> $weight>0 ? $weight : 0.1,
+                        "provider_code"=> $provider_code,
                         "type"=>"parcel",
                         "sender_company_name"=>get_bloginfo( 'name' ),
                         "sender_name"=> get_bloginfo( 'name' ),
@@ -295,16 +316,16 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                         "sender_address_line_3"=>$sender_details->get_base_city(),
                         "sender_address_line_4"=>$sender_details->get_base_state(),
                         "sender_postcode"=> $sender_details->get_base_postcode(),
-                        "receiver_company_name"=> $order_data['billing']['company'],
-                        "receiver_name"=> $order_data['billing']['first_name'].' '.$order_data['billing']['last_name'],
-                        "receiver_phone"=> $order_data['billing']['phone'],
-                        "receiver_email"=> $order_data['billing']['email'],
-                        "receiver_address_line_1"=> $order_data['billing']['address_1'],
-                        "receiver_address_line_2"=> $order_data['billing']['address_1'],
-                        "receiver_address_line_3"=> $order_data['billing']['city'],
-                        "receiver_address_line_4"=> $order_data['billing']['state'],
-                        "receiver_postcode"=> strtolower($order_data['billing']['postcode']),
-                        "receiver_country_code"=> strtolower($order_data['billing']['country']),
+                        "receiver_company_name"=> $receiver_company_name,
+                        "receiver_name"=> $receiver_name,
+                        "receiver_phone"=> $receiver_phone,
+                        "receiver_email"=> $receiver_email,
+                        "receiver_address_line_1"=> $receiver_address_line_1,
+                        "receiver_address_line_2"=> $receiver_address_line_2,
+                        "receiver_address_line_3"=> $receiver_address_line_3,
+                        "receiver_state_code"=> $receiver_state_code,
+                        "receiver_postcode"=> $receiver_postcode,
+                        "receiver_country_code"=> strtolower($receiver_country_code),
                         "content_type"=> "others",
                         "declared_send_at"=> $pickup_date,
                         "send_date"=> $pickup_date,
@@ -331,36 +352,30 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                         'cookies'     => array()
                         )
                     );
-                    if(!is_wp_error($response)) {
-                        $error_msg = json_decode($response['body'])->message[0]->message;
-                        if(strpos($error_msg, "Insufficient balance") !== false) {
-                            add_filter( 'redirect_post_location', array( $this, 'add_notice_insufficient_balance' ), 99 );
-                        } else if(strpos($error_msg, "missing value for parameter") !== false) {
-                            add_filter( 'redirect_post_location', array( $this, 'add_notice_missing_param' ), 99 );
-                        } else if(strpos($error_msg, "already exist") !== false) {
-                            $exist_tracking = json_decode($response['body'])->message[0]->tracking_no;
-                            update_post_meta($order->id,'track_no', $exist_tracking);
-                            add_filter( 'redirect_post_location', array( $this, 'add_notice_new_generate' ), 99 );
-                        } else {
-                            $result = json_decode($response['body']);
-                            $message = $result->message;
-                            if($message == "success") {
-                                $success = $result->data;
-            
-                                $print_tracks = $success->tracking_no;
-                                if($print_tracks){
-                                    update_post_meta($order->id,'track_no',$print_tracks[0]->tracking_no);
-                                    $order->add_order_note( __( 'Connote has been generated successfully.', 'woocommerce' ), false, true );
-                                    add_filter( 'redirect_post_location', array( $this, 'add_notice_new_generate' ), 99 );
-                                } else {
-                                    add_filter( 'redirect_post_location', array( $this, 'add_notice_track_not_found' ), 99 );
-                                }
-                            } else {
-                                add_filter( 'redirect_post_location', array( $this, 'add_notice_not_success' ), 99 );
-                            }
-                        }
+                    $error_msg = json_decode($response['body'])->message[0]->message;
+                    if(strpos($error_msg, "Insufficient balance") !== false) {
+                        add_filter( 'redirect_post_location', array( $this, 'add_notice_insufficient_balance' ), 99 );
+                    } else if(strpos($error_msg, "already exist") !== false) {
+                        $exist_tracking = json_decode($response['body'])->message[0]->tracking_no;
+                        update_post_meta($order->id,'track_no', $exist_tracking);
+                        add_filter( 'redirect_post_location', array( $this, 'add_notice_new_generate' ), 99 );
                     } else {
-                        echo $response->get_error_message();
+                        $result = json_decode($response['body']);
+                        $message = $result->message;
+                        if($message == "success") {
+                            $success = $result->data;
+        
+                            $print_tracks = $success->tracking_no;
+                            if($print_tracks){
+                                update_post_meta($order->id,'track_no',$print_tracks[0]->tracking_no);
+                                $order->add_order_note( __( 'Connote has been generated successfully.', 'woocommerce' ), false, true );
+                                add_filter( 'redirect_post_location', array( $this, 'add_notice_new_generate' ), 99 );
+                            } else {
+                                add_filter( 'redirect_post_location', array( $this, 'add_notice_track_not_found' ), 99 );
+                            }
+                        } else {
+                            add_filter( 'redirect_post_location', array( $this, 'add_notice_not_success' ), 99 );
+                        }
                     }
                 }
             }
@@ -386,8 +401,12 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                         $sender_details = WC()->countries;
     
                         foreach( $data->get_items( 'shipping' ) as $item_id => $item ){
-                            $weight = (int) filter_var($item['name'], FILTER_SANITIZE_NUMBER_INT);
+                            preg_match('!\d+\.*\d*!', $item['name'], $matches);
+                            $weight = (float)$matches[0];
                             switch (true) {
+                                case str_contains($item['name'], 'Flash'):
+                                    $provider_code = 'flash';
+                                    break;
                                 case str_contains($item['name'], 'POSLaju'):
                                     $provider_code = 'poslaju';
                                     break;
@@ -405,15 +424,35 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                                     break;
                                 }
                         }
+                        $receiver_company_name = $order_data['billing']['company'];
+                        $receiver_name = $order_data['billing']['first_name'].' '.$order_data['billing']['last_name'];
+                        $receiver_phone = $order_data['billing']['phone'];
+                        $receiver_email = $order_data['billing']['email'];
+                        $receiver_address_line_1 = $order_data['billing']['address_1'];
+                        $receiver_address_line_2 = $order_data['billing']['address_2'];
+                        $receiver_address_line_3 = $order_data['billing']['city'];
+                        $receiver_state_code = $order_data['billing']['state'];
+                        $receiver_postcode = $order_data['billing']['postcode'];
+                        $receiver_country_code = $order_data['billing']['country'];
+
+                        if($order_data['shipping']['first_name']) {                            
+                            $receiver_company_name = $order_data['shipping']['company'];
+                            $receiver_name = $order_data['shipping']['first_name'].' '.$order_data['shipping']['last_name'];
+                            $receiver_address_line_1 = $order_data['shipping']['address_1'];
+                            $receiver_address_line_2 = $order_data['shipping']['address_2'];
+                            $receiver_address_line_3 = $order_data['shipping']['city'];
+                            $receiver_state_code = $order_data['shipping']['state'];
+                            $receiver_postcode = $order_data['shipping']['postcode'];
+                            $receiver_country_code = $order_data['shipping']['country'];
+                        }
                         //if not yet create order
-                        $providers=array("poslaju","jnt","ninjavan");
                         $extract[] =  array(
                                 "integration_order_id"=> $order_data['order_key'],
                                 "integration_vendor"=> 'wc_plugin_bulk',
-                                "send_method"=> ($provider_code=='flash' ? 'pickup':$send_method),
+                                "send_method"=> $send_method,
                                 "size"=>"flyers_s",
-                                "declared_weight"=> $weight>0 ? $weight : 0.0,
-                                "provider_code"=> $provider_code ?? $providers[array_rand($providers)],
+                                "declared_weight"=> $weight>0 ? $weight : 0.1,
+                                "provider_code"=> $provider_code,
                                 "type"=>"parcel",
                                 "sender_company_name"=>get_bloginfo( 'name' ),
                                 "sender_name"=> get_bloginfo( 'name' ),
@@ -424,16 +463,16 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                                 "sender_address_line_3"=> $sender_details->get_base_city(),
                                 "sender_address_line_4"=> $sender_details->get_base_state(),
                                 "sender_postcode"=> $sender_details->get_base_postcode(),
-                                "receiver_company_name"=> $order_data['billing']['company'],
-                                "receiver_name"=> $order_data['billing']['first_name'].' '.$order_data['billing']['last_name'],
-                                "receiver_phone"=> $order_data['billing']['phone'],
-                                "receiver_email"=> $order_data['billing']['email'],
-                                "receiver_address_line_1"=> $order_data['billing']['address_1'],
-                                "receiver_address_line_2"=> $order_data['billing']['address_2'],
-                                "receiver_address_line_3"=> $order_data['billing']['city'],
-                                "receiver_address_line_4"=> $order_data['billing']['state'],
-                                "receiver_postcode"=> strtolower($order_data['billing']['postcode']),
-                                "receiver_country_code"=> strtolower($order_data['billing']['country']),
+                                "receiver_company_name"=> $receiver_company_name,
+                                "receiver_name"=> $receiver_name,
+                                "receiver_phone"=> $receiver_phone,
+                                "receiver_email"=> $receiver_email,
+                                "receiver_address_line_1"=> $receiver_address_line_1,
+                                "receiver_address_line_2"=> $receiver_address_line_2,
+                                "receiver_address_line_3"=> $receiver_address_line_3,
+                                "receiver_state_code"=> $receiver_state_code,
+                                "receiver_postcode"=> $receiver_postcode,
+                                "receiver_country_code"=> strtolower($receiver_country_code),
                                 "content_type"=> "others",
                                 "declared_send_at"=> $pickup_date,
                                 "send_date"=> $pickup_date,
@@ -479,47 +518,40 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                         )
                     );
                     
-                    if(!is_wp_error($response)) {
-                        $result = json_decode($response['body']);
-                        $message = $result->message;
-                        if($message == "success") { //for new cons only
-                            $success = $result->data;
-                            $print_tracks = $success->tracking_no;
-                            if($print_tracks){
-                                $count_track = count($list_track_no);
-                                foreach( $print_tracks as $key=>$print_track ){
-                                    update_post_meta($post_ids[$key+$count_track],'track_no',$print_track->tracking_no);
-                                    $list_track_no[] = $print_track->tracking_no;
-                                }
+                    $result = json_decode($response['body']);
+                    $message = $result->message;
+                    if($message == "success") { //for new cons only
+                        $success = $result->data;
+                        $print_tracks = $success->tracking_no;
+                        if($print_tracks){
+                            $count_track = count($list_track_no);
+                            foreach( $print_tracks as $key=>$print_track ){
+                                update_post_meta($post_ids[$key+$count_track],'track_no',$print_track->tracking_no);
+                                $list_track_no[] = $print_track->tracking_no;
                             }
-                            //cont to print
-                        } else { //not success message
-                            $error_msg = json_decode($response['body'])->message[0]->message;
-                            if(strpos($error_msg, "Insufficient balance") !== false) {
-                                $redirect_from= remove_query_arg(array('can_generate','link'), $redirect_to);
-                                $redirect_url = add_query_arg('insufficient', count($post_ids), $redirect_from);
-                                return $redirect_url; //exit if insufficient
-                            }
+                        }
+                        //cont to print
+                    } else { //not success message
+                        $error_msg = json_decode($response['body'])->message[0]->message;
+                        if(strpos($error_msg, "Insufficient balance") !== false) {
+                            $redirect_from= remove_query_arg(array('can_generate','link'), $redirect_to);
+                            $redirect_url = add_query_arg('insufficient', count($post_ids), $redirect_from);
+                            return $redirect_url; //exit if insufficient
+                        }
 
-                            $bulk_errors = json_decode($response['body'])->message;
-                            foreach($bulk_errors as $key=>$bulk_error){
-                                if(strpos($bulk_error, "already exist") !== false) {
-                                    update_post_meta($post_ids[$key],'track_no', $bulk_error->tracking_no);
-                                    $list_track_no[] = $bulk_error->tracking_no;
-                                    //if old and new cons together - only exist order return message - need workaround
-                                } else if(strpos($bulk_error, "missing parameter") !== false) {
-                                    update_post_meta($post_ids[$key],'track_no', $bulk_error->tracking_no);
-                                    $list_track_no[] = $bulk_error->tracking_no;
-                                } else {
-                                    if($error_msg) {
-                                        $redirect_url = add_query_arg(array('general_msg'=>$error_msg), $redirect_to);
-                                        return $redirect_url;
-                                    }
+                        $bulk_errors = json_decode($response['body'])->message;
+                        foreach($bulk_errors as $key=>$bulk_error){
+                            if(strpos($bulk_error, "already exist") !== false) {
+                                update_post_meta($post_ids[$key],'track_no', $bulk_error->tracking_no);
+                                $list_track_no[] = $bulk_error->tracking_no;
+                                //if old and new cons together - only exist order return message - need workaround
+                            } else {
+                                if($error_msg) {
+                                    $redirect_url = add_query_arg(array('general_msg'=>$error_msg), $redirect_to);
+                                    return $redirect_url;
                                 }
                             }
                         }
-                    } else {
-                        echo $response->get_error_message();
                     }
                 }
                 
