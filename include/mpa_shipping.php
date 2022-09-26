@@ -98,12 +98,19 @@ if ( ! class_exists( 'WC_MPA_Shipping_Method' ) ) {
               'type'              => 'text',
               'required'          => true
           ),
+          'citylink' => array(
+              'title' => __( '<font color="red">*</font>Display Courier Option', 'myparcelasia' ),
+              'label' => 'Citylink',
+              'type' => 'checkbox',
+              'default' => 'yes',
+              'checkboxgroup'   => 'start',
+          ),
           'flash' => array(
               'title' => __( '<font color="red">*</font>Display Courier Option', 'myparcelasia' ),
               'label' => 'Flash',
               'type' => 'checkbox',
               'default' => 'yes',
-              'checkboxgroup'   => 'start',
+              'checkboxgroup'   => '',
           ),
           'poslaju' => array(
               'label' => 'Poslaju',
@@ -118,7 +125,7 @@ if ( ! class_exists( 'WC_MPA_Shipping_Method' ) ) {
               'checkboxgroup'   => '',
           ),
           'dhle' => array(
-              'label' => 'DHL eCommerce',
+              'label' => 'DHL',
               'type' => 'checkbox',
               'default' => 'yes',
               'checkboxgroup'   => '',
@@ -145,7 +152,7 @@ if ( ! class_exists( 'WC_MPA_Shipping_Method' ) ) {
               'title'             => __( '<font color="red">*</font>Send Method', 'myparcelasia' ),
               'id'              => 'send_method',
               'type'              => 'select',
-              'description'       => __( 'By choosing Drop Off, all providers send method will be Drop Off except Flash Express. Flash Express send method will always be Pickup.', 'myparcelasia' ),
+              'description'       => __( 'By choosing Drop Off, all providers send method will be Drop Off.', 'myparcelasia' ),
               'desc_tip'          => true,
               'default'           => 'dropoff',
               'options'           => array( 'dropoff'=>'Drop Off','pickup'=>'Pickup'),
@@ -248,7 +255,8 @@ if ( ! class_exists( 'WC_MPA_Shipping_Method' ) ) {
               'cost'    =>  $price
             );
 
-            $couriers = $this->get_option("flash") == 'yes'? ['flash']: [];
+            $couriers = $this->get_option("citylink") == 'yes'? ['citylink']: [];
+            $couriers[] .= $this->get_option("flash") == 'yes'? 'flash': '';
             $couriers[] .= $this->get_option("poslaju") == 'yes'? 'poslaju': '';
             $couriers[] .= $this->get_option("nationwide") == 'yes'? 'nationwide': '';
             $couriers[] .= $this->get_option("dhle") == 'yes'? 'dhle': '';

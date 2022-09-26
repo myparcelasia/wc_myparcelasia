@@ -3,13 +3,15 @@
 Plugin Name: MyParcel Asia (Demo)
 Plugin URI: https://demo.myparcelasia.com/secure/integration_store
 Description: This is DEMO Plugin. To use live production please remove this demo plugin and download from https://app.myparcelasia.com. MyParcel Asia plugin to enable courier and shipping rate to display in checkout page. To get started, activate MyParcel Asia plugin and then go to WooCommerce > Settings > Shipping > MyParcel Asia Shipping to set up your Integration ID.
-Version: 1.1.5
+Version: 1.2.1
 Author: MyParcel Asia
 Author URI: https://demo.myparcelasia.com
-Wordpress requires at least: 5.0.0
-Wordpress tested up to: 5.9.0
-WC requires at least: 5.0.0
-WC tested up to: 6.1.0
+Requires at least: at least 5.6
+Wordpress tested up to: 6.0.2
+Requires PHP: at least 7.2
+PHP tested up to: 8.1.0
+Requires WC: 6.1.0
+WC tested up to: 6.9.0
 */
 if ( ! defined( 'ABSPATH' ) ) { 
     exit; // Exit if accessed directly
@@ -237,6 +239,12 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                 $order_data = $data->get_data();
                 $product_data = $data->get_items();
                 $sender_details = WC()->countries;
+                $sender_state = WC()->countries->get_states(WC()->countries->get_base_country())[WC()->countries->get_base_state()];
+
+                foreach($order_data['line_items'] as $line_items) {
+                    $description[] = $line_items['name'].' x'.$line_items['quantity'];
+                }
+                $content_description = implode(', ', $description);
 
                 date_default_timezone_set("Asia/Kuala_Lumpur");
                 if(date("H:i")>="11:45") {
@@ -250,6 +258,9 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                     $weight = (float)$matches[0];
 
                     switch (true) {
+                        case strpos($item['name'], 'Citylink') !== false:
+                            $provider_code = 'citylink';
+                            break;
                         case strpos($item['name'], 'Flash') !== false:
                             $provider_code = 'flash';
                             break;
@@ -283,7 +294,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                     $receiver_email = $order_data['billing']['email'];
                     $receiver_address_line_1 = $order_data['billing']['address_1'];
                     $receiver_address_line_2 = $order_data['billing']['address_2'];
-                    $receiver_address_line_3 = $order_data['billing']['city'];
+                    $receiver_city = $order_data['billing']['city'];
                     $receiver_state_code = $order_data['billing']['state'];
                     $receiver_postcode = $order_data['billing']['postcode'];
                     $receiver_country_code = $order_data['billing']['country'];
@@ -293,14 +304,17 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                         $receiver_name = $order_data['shipping']['first_name'].' '.$order_data['shipping']['last_name'];
                         $receiver_address_line_1 = $order_data['shipping']['address_1'];
                         $receiver_address_line_2 = $order_data['shipping']['address_2'];
-                        $receiver_address_line_3 = $order_data['shipping']['city'];
+                        $receiver_city = $order_data['shipping']['city'];
                         $receiver_state_code = $order_data['shipping']['state'];
                         $receiver_postcode = $order_data['shipping']['postcode'];
                         $receiver_country_code = $order_data['shipping']['country'];
                     }
+                    $receiver_state = WC()->countries->get_states($receiver_country_code)[$receiver_state_code];
                     $extract = array(
                         array(
-                        "integration_order_id"=> $order_data['order_key'],
+                        "origin_channel"=> 'integration',
+                        "integration_order_id"=> $order->id,
+                        "integration_order_label"=> $order_data['order_key'],
                         "integration_vendor"=> 'wc_plugin_single',
                         "send_method"=> $send_method,
                         "size"=>"flyers_s",
@@ -313,26 +327,28 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                         "sender_email"=> get_bloginfo('admin_email'),
                         "sender_address_line_1"=>$sender_details->get_base_address(),
                         "sender_address_line_2"=>$sender_details->get_base_address_2(),
-                        "sender_address_line_3"=>$sender_details->get_base_city(),
-                        "sender_address_line_4"=>$sender_details->get_base_state(),
                         "sender_postcode"=> $sender_details->get_base_postcode(),
+                        "sender_city"=> $sender_details->get_base_city(),
+                        "sender_state_code"=> $sender_details->get_base_state(),
+                        "sender_state"=> $sender_state,
                         "receiver_company_name"=> $receiver_company_name,
                         "receiver_name"=> $receiver_name,
                         "receiver_phone"=> $receiver_phone,
                         "receiver_email"=> $receiver_email,
                         "receiver_address_line_1"=> $receiver_address_line_1,
                         "receiver_address_line_2"=> $receiver_address_line_2,
-                        "receiver_address_line_3"=> $receiver_address_line_3,
+                        "receiver_city"=> $receiver_city,
                         "receiver_state_code"=> $receiver_state_code,
+                        "receiver_state"=> $receiver_state,
                         "receiver_postcode"=> $receiver_postcode,
-                        "receiver_country_code"=> strtolower($receiver_country_code),
+                        "receiver_country_code"=> $receiver_country_code,
+                        "content_description"=> $content_description,
                         "content_type"=> "others",
                         "declared_send_at"=> $pickup_date,
                         "send_date"=> $pickup_date,
                         "log"=> json_encode($order_data)
                         )
                     );
-
                     $body = array(
                         "api_key"=> self::$integration_id,
                         "shipments"=> $extract
@@ -399,11 +415,18 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                         $order_data = $data->get_data();
                         $product_data = $data->get_items();
                         $sender_details = WC()->countries;
-    
+                        $sender_state = WC()->countries->get_states(WC()->countries->get_base_country())[WC()->countries->get_base_state()];
+                        foreach($order_data['line_items'] as $line_items) {
+                            $description[] = $line_items['name'].' x'.$line_items['quantity'];
+                        }
+                        $content_description = implode(', ', $description);
                         foreach( $data->get_items( 'shipping' ) as $item_id => $item ){
                             preg_match('!\d+\.*\d*!', $item['name'], $matches);
                             $weight = (float)$matches[0];
                             switch (true) {
+                                case str_contains($item['name'], 'Citylink'):
+                                    $provider_code = 'citylink';
+                                    break;
                                 case str_contains($item['name'], 'Flash'):
                                     $provider_code = 'flash';
                                     break;
@@ -430,24 +453,26 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                         $receiver_email = $order_data['billing']['email'];
                         $receiver_address_line_1 = $order_data['billing']['address_1'];
                         $receiver_address_line_2 = $order_data['billing']['address_2'];
-                        $receiver_address_line_3 = $order_data['billing']['city'];
+                        $receiver_city = $order_data['billing']['city'];
                         $receiver_state_code = $order_data['billing']['state'];
                         $receiver_postcode = $order_data['billing']['postcode'];
                         $receiver_country_code = $order_data['billing']['country'];
-
                         if($order_data['shipping']['first_name']) {                            
                             $receiver_company_name = $order_data['shipping']['company'];
                             $receiver_name = $order_data['shipping']['first_name'].' '.$order_data['shipping']['last_name'];
                             $receiver_address_line_1 = $order_data['shipping']['address_1'];
                             $receiver_address_line_2 = $order_data['shipping']['address_2'];
-                            $receiver_address_line_3 = $order_data['shipping']['city'];
+                            $receiver_city = $order_data['shipping']['city'];
                             $receiver_state_code = $order_data['shipping']['state'];
                             $receiver_postcode = $order_data['shipping']['postcode'];
                             $receiver_country_code = $order_data['shipping']['country'];
                         }
+                        $receiver_state = WC()->countries->get_states($receiver_country_code)[$receiver_state_code];
                         //if not yet create order
                         $extract[] =  array(
-                                "integration_order_id"=> $order_data['order_key'],
+                                "origin_channel"=> 'integration',
+                                "integration_order_id"=> $post_id,
+                                "integration_order_label"=> $order_data['order_key'],
                                 "integration_vendor"=> 'wc_plugin_bulk',
                                 "send_method"=> $send_method,
                                 "size"=>"flyers_s",
@@ -460,20 +485,23 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                                 "sender_email"=> get_bloginfo('admin_email'),
                                 "sender_address_line_1"=> $sender_details->get_base_address(),
                                 "sender_address_line_2"=> $sender_details->get_base_address_2(),
-                                "sender_address_line_3"=> $sender_details->get_base_city(),
-                                "sender_address_line_4"=> $sender_details->get_base_state(),
                                 "sender_postcode"=> $sender_details->get_base_postcode(),
+                                "sender_city"=> $sender_details->get_base_city(),
+                                "sender_state_code"=> $sender_details->get_base_state(),
+                                "sender_state"=> $sender_state,
                                 "receiver_company_name"=> $receiver_company_name,
                                 "receiver_name"=> $receiver_name,
                                 "receiver_phone"=> $receiver_phone,
                                 "receiver_email"=> $receiver_email,
                                 "receiver_address_line_1"=> $receiver_address_line_1,
                                 "receiver_address_line_2"=> $receiver_address_line_2,
-                                "receiver_address_line_3"=> $receiver_address_line_3,
+                                "receiver_city"=> $receiver_city,
                                 "receiver_state_code"=> $receiver_state_code,
+                                "receiver_state"=> $receiver_state,
                                 "receiver_postcode"=> $receiver_postcode,
-                                "receiver_country_code"=> strtolower($receiver_country_code),
+                                "receiver_country_code"=> $receiver_country_code,
                                 "content_type"=> "others",
+                                "content_description"=> $content_description,
                                 "declared_send_at"=> $pickup_date,
                                 "send_date"=> $pickup_date,
                                 "log"=> json_encode($order_data)
@@ -481,7 +509,6 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                     }
                     //END: check condition tracking no exist
                 }
-
                 return array($list_track_no,$extract);
             }
             
