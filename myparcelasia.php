@@ -1,11 +1,11 @@
 <?php
 /*
-Plugin Name: MyParcel Asia
-Plugin URI: https://app.myparcelasia.com/secure/integration_store
-Description: MyParcel Asia plugin to enable courier and shipping rate to display in checkout page. To get started, activate MyParcel Asia plugin and then go to WooCommerce > Settings > Shipping > MyParcel Asia Shipping to set up your Integration ID.
+Plugin Name: MyParcel Asia (Demo)
+Plugin URI: https://demo.myparcelasia.com/secure/integration_store
+Description: This is DEMO Plugin. To use live production please remove this demo plugin and download from https://app.myparcelasia.com. MyParcel Asia plugin to enable courier and shipping rate to display in checkout page. To get started, activate MyParcel Asia plugin and then go to WooCommerce > Settings > Shipping > MyParcel Asia Shipping to set up your Integration ID.
 Version: 1.2.2
 Author: MyParcel Asia
-Author URI: https://app.myparcelasia.com
+Author URI: https://demo.myparcelasia.com
 Requires at least: at least 5.6
 Wordpress tested up to: 6.0.2
 Requires PHP: at least 7.2
@@ -65,7 +65,10 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                     if (!empty($_REQUEST['insufficient'])) {
                         $num_changed = (int) $_REQUEST['insufficient'];
                         printf('<div id="message" class="notice notice-error is-dismissible"><p>' . __('Insufficient balance for %d order.', 'txtdomain') . '</p></div>', $num_changed);
-                        
+                    } else if (!empty($_REQUEST['missing_param'])) {
+                        $num_changed = (int) $_REQUEST['missing_param'];
+                        $link = $_REQUEST['missing_param'];
+                        printf('<div id="message" class="notice notice-error is-dismissible"><p>' . __('Missing value to create shipment.', 'txtdomain') . '</p></div>', $num_changed);
                     } else if (!empty($_REQUEST['can_generate'])) {
                         $num_changed = (int) $_REQUEST['can_generate'];
                         $link = $_REQUEST['link'];
@@ -168,6 +171,11 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
             public function add_notice_insufficient_balance( $location ) {
                 remove_filter( 'redirect_post_location', array( $this, 'add_notice_insufficient_balance' ), 99 );
                 return add_query_arg( array( 'custom_msg' => 'insufficient_balance' ), $location );
+            }
+
+            public function add_notice_missing_param( $location ) {
+                remove_filter( 'redirect_post_location', array( $this, 'add_notice_missing_param' ), 99 );
+                return add_query_arg( array( 'custom_msg' => 'missing_param' ), $location );
             }
             
             public function add_notice_track_not_found( $location ) {
