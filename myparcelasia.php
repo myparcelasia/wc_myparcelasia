@@ -475,7 +475,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                         //if not yet create order
                         $extract[] =  array(
                                 "origin_channel"=> 'integration',
-                                "integration_order_id"=> $order->id.'('.str_replace("wc_order_","",$order_data['order_key']).')',
+                                "integration_order_id"=> $post_id.'('.str_replace("wc_order_","",$order_data['order_key']).')',
                                 "integration_order_label"=> $order_data['order_key'],
                                 "integration_vendor"=> 'wc_plugin_bulk',
                                 "send_method"=> $send_method,
