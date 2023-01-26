@@ -106,7 +106,6 @@ if ( ! class_exists( 'WC_MPA_Shipping_Method' ) ) {
               'checkboxgroup'   => 'start',
           ),
           'flash' => array(
-              'title' => __( '<font color="red">*</font>Display Courier Option', 'myparcelasia' ),
               'label' => 'Flash',
               'type' => 'checkbox',
               'default' => 'yes',
