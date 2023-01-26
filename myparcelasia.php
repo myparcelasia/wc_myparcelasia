@@ -3,15 +3,15 @@
 Plugin Name: MyParcel Asia (Demo)
 Plugin URI: https://demo.myparcelasia.com/secure/integration_store
 Description: This is DEMO Plugin. To use live production please remove this demo plugin and download from https://app.myparcelasia.com. MyParcel Asia plugin to enable courier and shipping rate to display in checkout page. To get started, activate MyParcel Asia plugin and then go to WooCommerce > Settings > Shipping > MyParcel Asia Shipping to set up your Integration ID.
-Version: 1.2.2
+Version: 1.3.1
 Author: MyParcel Asia
 Author URI: https://demo.myparcelasia.com
 Requires at least: at least 5.6
-Wordpress tested up to: 6.0.2
-Requires PHP: at least 7.2
+Wordpress tested up to: 6.1.1
+Requires PHP: at least 7.3
 PHP tested up to: 8.1.0
 Requires WC: 6.1.0
-WC tested up to: 6.9.0
+WC tested up to: 7.3.0
 */
 if ( ! defined( 'ABSPATH' ) ) { 
     exit; // Exit if accessed directly
@@ -327,6 +327,8 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                         "sender_email"=> get_bloginfo('admin_email'),
                         "sender_address_line_1"=>$sender_details->get_base_address(),
                         "sender_address_line_2"=>$sender_details->get_base_address_2(),
+                        "sender_address_line_3"=> "",
+                        "sender_address_line_4"=> "",
                         "sender_postcode"=> $sender_details->get_base_postcode(),
                         "sender_city"=> $sender_details->get_base_city(),
                         "sender_state_code"=> $sender_details->get_base_state(),
@@ -337,6 +339,8 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                         "receiver_email"=> $receiver_email,
                         "receiver_address_line_1"=> $receiver_address_line_1,
                         "receiver_address_line_2"=> $receiver_address_line_2,
+                        "receiver_address_line_3"=> "",
+                        "receiver_address_line_4"=> "",
                         "receiver_city"=> $receiver_city,
                         "receiver_state_code"=> $receiver_state_code,
                         "receiver_state"=> $receiver_state,
@@ -471,7 +475,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                         //if not yet create order
                         $extract[] =  array(
                                 "origin_channel"=> 'integration',
-                                "integration_order_id"=> $post_id,
+                                "integration_order_id"=> $post_id.'('.str_replace("wc_order_","",$order_data['order_key']).')',
                                 "integration_order_label"=> $order_data['order_key'],
                                 "integration_vendor"=> 'wc_plugin_bulk',
                                 "send_method"=> $send_method,
@@ -485,6 +489,8 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                                 "sender_email"=> get_bloginfo('admin_email'),
                                 "sender_address_line_1"=> $sender_details->get_base_address(),
                                 "sender_address_line_2"=> $sender_details->get_base_address_2(),
+                                "sender_address_line_3"=> "",
+                                "sender_address_line_4"=> "",
                                 "sender_postcode"=> $sender_details->get_base_postcode(),
                                 "sender_city"=> $sender_details->get_base_city(),
                                 "sender_state_code"=> $sender_details->get_base_state(),
@@ -495,6 +501,8 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                                 "receiver_email"=> $receiver_email,
                                 "receiver_address_line_1"=> $receiver_address_line_1,
                                 "receiver_address_line_2"=> $receiver_address_line_2,
+                                "receiver_address_line_3"=> "",
+                                "receiver_address_line_4"=> "",
                                 "receiver_city"=> $receiver_city,
                                 "receiver_state_code"=> $receiver_state_code,
                                 "receiver_state"=> $receiver_state,
@@ -513,6 +521,12 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
             }
             
             public function bulk_generate_tracking_order( $redirect_to, $action, $post_ids ) {
+                // will add to make sure user install latest version
+                // $plugin_data = get_plugin_data( __FILE__ );
+                // if($plugin_data['Version'] == '1.3.0') {
+                //     return;
+                // }
+                // dd('correct version');
                 $WC_MPA_Config = new MPA_Shipping_Config();
                 global $woocommerce,$wpdb;
                 include 'include/mpa_shipping.php';
