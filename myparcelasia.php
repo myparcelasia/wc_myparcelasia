@@ -3,15 +3,15 @@
 Plugin Name: MyParcel Asia
 Plugin URI: https://app.myparcelasia.com/secure/integration_store
 Description: MyParcel Asia plugin to enable courier and shipping rate to display in checkout page. To get started, activate MyParcel Asia plugin and then go to WooCommerce > Settings > Shipping > MyParcel Asia Shipping to set up your Integration ID.
-Version: 1.3.1
+Version: 1.3.2
 Author: MyParcel Asia
 Author URI: https://app.myparcelasia.com
 Requires at least: at least 5.6
-Wordpress tested up to: 6.1.1
-Requires PHP: at least 7.3
+Wordpress tested up to: 6.2
+Requires PHP: at least 7.4
 PHP tested up to: 8.1.0
-Requires WC: 6.1.0
-WC tested up to: 7.3.0
+Requires WC: 7.3.0
+WC tested up to: 7.5.1
 */
 if ( ! defined( 'ABSPATH' ) ) { 
     exit; // Exit if accessed directly
@@ -299,7 +299,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                     $receiver_postcode = $order_data['billing']['postcode'];
                     $receiver_country_code = $order_data['billing']['country'];
 
-                    if($order_data['shipping']['first_name']) {                            
+                    if($order_data['shipping']['first_name']) {
                         $receiver_company_name = $order_data['shipping']['company'];
                         $receiver_name = $order_data['shipping']['first_name'].' '.$order_data['shipping']['last_name'];
                         $receiver_address_line_1 = $order_data['shipping']['address_1'];
@@ -308,6 +308,9 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                         $receiver_state_code = $order_data['shipping']['state'];
                         $receiver_postcode = $order_data['shipping']['postcode'];
                         $receiver_country_code = $order_data['shipping']['country'];
+                        if($order_data['shipping']['phone']) {
+                            $receiver_country_code = $order_data['shipping']['phone'];
+                        }
                     }
                     $receiver_state = WC()->countries->get_states($receiver_country_code)[$receiver_state_code];
                     $extract = array(
@@ -470,6 +473,9 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                             $receiver_state_code = $order_data['shipping']['state'];
                             $receiver_postcode = $order_data['shipping']['postcode'];
                             $receiver_country_code = $order_data['shipping']['country'];
+                            if($order_data['shipping']['phone']) {
+                                $receiver_country_code = $order_data['shipping']['phone'];
+                            }
                         }
                         $receiver_state = WC()->countries->get_states($receiver_country_code)[$receiver_state_code];
                         //if not yet create order
