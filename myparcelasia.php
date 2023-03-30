@@ -309,7 +309,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                         $receiver_postcode = $order_data['shipping']['postcode'];
                         $receiver_country_code = $order_data['shipping']['country'];
                         if($order_data['shipping']['phone']) {
-                            $receiver_country_code = $order_data['shipping']['phone'];
+                            $receiver_phone = $order_data['shipping']['phone'];
                         }
                     }
                     $receiver_state = WC()->countries->get_states($receiver_country_code)[$receiver_state_code];
@@ -474,7 +474,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                             $receiver_postcode = $order_data['shipping']['postcode'];
                             $receiver_country_code = $order_data['shipping']['country'];
                             if($order_data['shipping']['phone']) {
-                                $receiver_country_code = $order_data['shipping']['phone'];
+                                $receiver_phone = $order_data['shipping']['phone'];
                             }
                         }
                         $receiver_state = WC()->countries->get_states($receiver_country_code)[$receiver_state_code];
