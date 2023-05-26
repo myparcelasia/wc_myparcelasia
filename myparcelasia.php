@@ -3,7 +3,7 @@
 Plugin Name: MyParcel Asia
 Plugin URI: https://app.myparcelasia.com/secure/integration_store
 Description: MyParcel Asia plugin to enable courier and shipping rate to display in checkout page. To get started, activate MyParcel Asia plugin and then go to WooCommerce > Settings > Shipping > MyParcel Asia Shipping to set up your Integration ID.
-Version: 1.3.2
+Version: 1.4.0
 Author: MyParcel Asia
 Author URI: https://app.myparcelasia.com
 Requires at least: at least 5.6
@@ -533,6 +533,9 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                 //     return;
                 // }
                 // dd('correct version');
+                if ($action !== 'generate_connote_order') {
+                    return $redirect_to;
+                }
                 $WC_MPA_Config = new MPA_Shipping_Config();
                 global $woocommerce,$wpdb;
                 include 'include/mpa_shipping.php';
