@@ -3,15 +3,15 @@
 Plugin Name: MyParcel Asia (Demo)
 Plugin URI: https://demo.myparcelasia.com/secure/integration_store
 Description: This is DEMO Plugin. To use live production please remove this demo plugin and download from https://app.myparcelasia.com. MyParcel Asia plugin to enable courier and shipping rate to display in checkout page. To get started, activate MyParcel Asia plugin and then go to WooCommerce > Settings > Shipping > MyParcel Asia Shipping to set up your Integration ID.
-Version: 1.3.1
+Version: 1.5.0
 Author: MyParcel Asia
 Author URI: https://demo.myparcelasia.com
 Requires at least: at least 5.6
-Wordpress tested up to: 6.1.1
-Requires PHP: at least 7.3
+Wordpress tested up to: 6.2
+Requires PHP: at least 7.4
 PHP tested up to: 8.1.0
-Requires WC: 6.1.0
-WC tested up to: 7.3.0
+Requires WC: 7.3.0
+WC tested up to: 7.5.1
 */
 if ( ! defined( 'ABSPATH' ) ) { 
     exit; // Exit if accessed directly
@@ -225,6 +225,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
             }
             
             public function generate_tracking_order( $order ) {
+                $plugin_data = get_plugin_data( __FILE__ );
                 $WC_MPA_Config = new MPA_Shipping_Config();
                 global $woocommerce,$wpdb;
 
@@ -243,6 +244,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 
                 foreach($order_data['line_items'] as $line_items) {
                     $description[] = $line_items['name'].' x'.$line_items['quantity'];
+                    $content_value = $line_items['subtotal'];
                 }
                 $content_description = implode(', ', $description);
 
@@ -299,7 +301,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                     $receiver_postcode = $order_data['billing']['postcode'];
                     $receiver_country_code = $order_data['billing']['country'];
 
-                    if($order_data['shipping']['first_name']) {                            
+                    if($order_data['shipping']['first_name']) {
                         $receiver_company_name = $order_data['shipping']['company'];
                         $receiver_name = $order_data['shipping']['first_name'].' '.$order_data['shipping']['last_name'];
                         $receiver_address_line_1 = $order_data['shipping']['address_1'];
@@ -308,11 +310,14 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                         $receiver_state_code = $order_data['shipping']['state'];
                         $receiver_postcode = $order_data['shipping']['postcode'];
                         $receiver_country_code = $order_data['shipping']['country'];
+                        if($order_data['shipping']['phone']) {
+                            $receiver_phone = $order_data['shipping']['phone'];
+                        }
                     }
                     $receiver_state = WC()->countries->get_states($receiver_country_code)[$receiver_state_code];
                     $extract = array(
                         array(
-                        "origin_channel"=> 'integration',
+                        "origin_channel"=> 'integration_wc_'.$plugin_data['Version'],
                         "integration_order_id"=> $order->id.'('.str_replace("wc_order_","",$order_data['order_key']).')',
                         "integration_order_label"=> $order_data['order_key'],
                         "integration_vendor"=> 'wc_plugin_single',
@@ -348,6 +353,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                         "receiver_country_code"=> $receiver_country_code,
                         "content_description"=> $content_description,
                         "content_type"=> "others",
+                        "content_value"=>$content_value,
                         "declared_send_at"=> $pickup_date,
                         "send_date"=> $pickup_date,
                         "log"=> json_encode($order_data)
@@ -400,7 +406,8 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                 }
             }
 
-            public function check_post_id($post_ids,$phone_number,$send_method) {                
+            public function check_post_id($post_ids,$phone_number,$send_method) {
+                $plugin_data = get_plugin_data( __FILE__ );
                 date_default_timezone_set("Asia/Kuala_Lumpur");
                 if(date("H:i")>="11:45") {
                     $pickup_date = date("Y-m-d", strtotime('tomorrow'));
@@ -422,6 +429,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                         $sender_state = WC()->countries->get_states(WC()->countries->get_base_country())[WC()->countries->get_base_state()];
                         foreach($order_data['line_items'] as $line_items) {
                             $description[] = $line_items['name'].' x'.$line_items['quantity'];
+                            $content_value = $line_items['subtotal'];
                         }
                         $content_description = implode(', ', $description);
                         foreach( $data->get_items( 'shipping' ) as $item_id => $item ){
@@ -470,11 +478,14 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                             $receiver_state_code = $order_data['shipping']['state'];
                             $receiver_postcode = $order_data['shipping']['postcode'];
                             $receiver_country_code = $order_data['shipping']['country'];
+                            if($order_data['shipping']['phone']) {
+                                $receiver_phone = $order_data['shipping']['phone'];
+                            }
                         }
                         $receiver_state = WC()->countries->get_states($receiver_country_code)[$receiver_state_code];
                         //if not yet create order
                         $extract[] =  array(
-                                "origin_channel"=> 'integration',
+                                "origin_channel"=> 'integration_wc_'.$plugin_data['Version'],
                                 "integration_order_id"=> $post_id.'('.str_replace("wc_order_","",$order_data['order_key']).')',
                                 "integration_order_label"=> $order_data['order_key'],
                                 "integration_vendor"=> 'wc_plugin_bulk',
@@ -509,6 +520,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                                 "receiver_postcode"=> $receiver_postcode,
                                 "receiver_country_code"=> $receiver_country_code,
                                 "content_type"=> "others",
+                                "content_value"=>$content_value,
                                 "content_description"=> $content_description,
                                 "declared_send_at"=> $pickup_date,
                                 "send_date"=> $pickup_date,
@@ -521,12 +533,9 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
             }
             
             public function bulk_generate_tracking_order( $redirect_to, $action, $post_ids ) {
-                // will add to make sure user install latest version
-                // $plugin_data = get_plugin_data( __FILE__ );
-                // if($plugin_data['Version'] == '1.3.0') {
-                //     return;
-                // }
-                // dd('correct version');
+                if ($action !== 'generate_connote_order') {
+                    return $redirect_to;
+                }
                 $WC_MPA_Config = new MPA_Shipping_Config();
                 global $woocommerce,$wpdb;
                 include 'include/mpa_shipping.php';
