@@ -1,7 +1,6 @@
 {
     "description": "Custom MyParcel Asia plugin for Woocommerce",
     "name": "mpa/woocommerce",
-    "version": "1.0.0",
     "license": "MIT",
     "type": "project",
     "require": {
