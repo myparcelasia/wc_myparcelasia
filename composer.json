@@ -11,6 +11,12 @@
         "phpunit/phpunit": "^10.2"
     },
     "scripts": {
+        "post-install-cmd": [
+            "chmod +x vendor/bin/phpunit"
+        ],
+        "post-update-cmd": [
+            "chmod +x vendor/bin/phpunit"
+        ],
         "test": "vendor/bin/phpunit"
     }
 }
